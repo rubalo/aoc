@@ -1,12 +1,69 @@
 # SPDX-FileCopyrightText: 2024-present rubalo <rubalo@users.noreply.github.com>
 #
 # SPDX-License-Identifier: MIT
+import logging
+from datetime import UTC, datetime
+
 import click
 
 from aoc.__about__ import __version__
+from aoc.utils import create_day_structure
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+)
+logger = logging.getLogger(__name__)
+
+MIN_AOC_YEAR = 2015
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]}, invoke_without_command=True)
+@click.group(context_settings={"help_option_names": ["-h", "--help"]}, invoke_without_command=False)
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.version_option(version=__version__, prog_name="aoc")
-def aoc():
-    click.echo("Hello world!")
+def aoc(*, verbose: bool) -> None:
+    click.echo("Advent of code!")
+
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Verbose mode enabled.")
+
+
+@aoc.command()
+@click.option("--day", "-d", type=int, help="Day of the Advent of Code", required=False, default=0)
+@click.option("--year", "-y", type=int, help="Year of the Advent of Code", required=False, default=0)
+def init(day: int, year: int) -> None:
+    c_year = datetime.now(UTC).year
+    c_day = datetime.now(UTC).day
+
+    if year == 0:
+        i_year = click.prompt("Enter the year of the Advent of Code", type=int, default=c_year)
+        if not MIN_AOC_YEAR < i_year < c_year + 1:
+            click.echo(f"Year must be between 2015 and {c_year}")
+            click.echo("Aborting...")
+            return
+        year = i_year
+
+    if day == 0:
+        # Ask user if he wants to use the current day
+        i_day = click.prompt("Enter the day", type=int, default=c_day)
+
+        if not 0 < i_day < 31 + 1:
+            click.echo("Day must be between 1 and 31")
+            click.echo("Aborting...")
+            return
+        day = i_day
+
+    _msg = f"Initializing day {day} of year {year}"
+    logger.info(_msg)
+
+    # Create the directory structure
+    try:
+        create_day_structure(day, year)
+    except FileExistsError:
+        logger.exception("Day file already exists.")
+        logger.info("Aborting...")
+        return
+
+    _msg = f"Day {day} of year {year} initialized."
+    logger.info(_msg)
