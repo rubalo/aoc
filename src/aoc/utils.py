@@ -15,6 +15,11 @@ def get_root_directory() -> Path:
     git_root = git_repo.git.rev_parse("--show-toplevel")
     return Path(git_root)
 
+def get_data_directory() -> Path:
+    """Get the data directory for the Advent of Code solutions."""
+
+    return get_root_directory() / Path("data")
+
 
 def get_module_directory() -> Path:
     """Get the module directory for the Advent of Code solutions."""
@@ -83,11 +88,15 @@ def create_day_file(day: int, year: int) -> None:
 
 from __future__ import annotations
 from pathlib import Path
+from aoc.utils import read_input
 
-def read_input() -> list[str]:
-    file_path = Path(__file__) / "input.txt"
-    with open(file_path, "r") as f:
-        return f.readlines()
+def get_input_data() -> list[str]:
+    return read_input(day={day}, year={year})
+
+
+def get_test_input_data() -> list[str]:
+    return [""]
+
 
 def part1(data: list[str]) -> int:  # noqa
     return 0
@@ -107,3 +116,44 @@ def part2(data: list[str]) -> int:  # noqa
         f.write(template)
 
     logger.info("Created day file: %s", day_file)
+
+
+def run_day(day: int, year: int) -> None:
+    """Run the given day and year."""
+
+    day_file = get_module_directory() / Path(f"{year}/day{day}/day{day}.py")
+
+    if not day_file.exists():
+        _msg = f"Day file does not exist: {day_file}"
+        raise FileNotFoundError(_msg)
+
+    # Import the day module
+    from importlib import import_module
+
+    module = import_module(f"aoc.{year}.day{day}.day{day}")
+
+    # Read the input
+    data = read_input(day, year)
+
+    # Run the solutions
+    part1 = module.part1(data)
+    part2 = module.part2(data)
+
+    logger.info("Day %d of year %d", day, year)
+    logger.info("Part 1: %s", part1)
+    logger.info("Part 2: %s", part2)
+
+
+def read_input(day: int, year: int) -> list[str]:
+    """Read the input data for the given day and year."""
+
+    day_file = get_data_directory() / Path(f"{year}/day{day}/input.txt")
+
+    if not day_file.exists():
+        _msg = f"Day input file does not exist: {day_file}"
+        raise FileNotFoundError(_msg)
+
+    with open(day_file, "r") as f:
+        data = f.readlines()
+
+    return data

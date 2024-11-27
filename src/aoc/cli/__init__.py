@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 import click
 
 from aoc.__about__ import __version__
-from aoc.utils import create_day_structure
+from aoc.utils import create_day_structure, run_day
 
 logging.basicConfig(
     level=logging.INFO,
@@ -88,3 +88,13 @@ def run(ctx) -> None:
 
     _msg = f"Running day {day} of year {year}"
     logger.info(_msg)
+
+    try:
+        run_day(day, year)
+    except FileNotFoundError:
+        logger.exception("Day file does not exist.")
+        logger.info("Aborting...")
+        return
+
+    _msg = f"Day {day} of year {year} run."
+
