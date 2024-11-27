@@ -5,6 +5,7 @@ import logging
 from datetime import UTC, datetime
 
 import click
+from datetime import datetime
 
 from aoc.__about__ import __version__
 from aoc.utils import create_day_structure
