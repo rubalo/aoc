@@ -5,7 +5,6 @@ import logging
 from datetime import UTC, datetime
 
 import click
-from datetime import datetime
 
 from aoc.__about__ import __version__
 from aoc.utils import create_day_structure
@@ -21,21 +20,21 @@ MIN_AOC_YEAR = 2015
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]}, invoke_without_command=False)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option("--day", "-d", type=int, help="Day of the Advent of Code", required=False, default=0)
+@click.option("--year", "-y", type=int, help="Year of the Advent of Code", required=False, default=0)
 @click.version_option(version=__version__, prog_name="aoc")
-def aoc(*, verbose: bool) -> None:
+@click.pass_context
+def aoc(ctx, *, verbose: bool, day: int, year: int) -> None:
     click.echo("Advent of code!")
+
+    ctx.ensure_object(dict)
+
+    c_year = datetime.now(UTC).year
+    c_day = datetime.now(UTC).day
 
     if verbose:
         logger.setLevel(logging.DEBUG)
         logger.debug("Verbose mode enabled.")
-
-
-@aoc.command()
-@click.option("--day", "-d", type=int, help="Day of the Advent of Code", required=False, default=0)
-@click.option("--year", "-y", type=int, help="Year of the Advent of Code", required=False, default=0)
-def init(day: int, year: int) -> None:
-    c_year = datetime.now(UTC).year
-    c_day = datetime.now(UTC).day
 
     if year == 0:
         i_year = click.prompt("Enter the year of the Advent of Code", type=int, default=c_year)
@@ -43,7 +42,9 @@ def init(day: int, year: int) -> None:
             click.echo(f"Year must be between 2015 and {c_year}")
             click.echo("Aborting...")
             return
-        year = i_year
+        ctx.obj["year"] = i_year
+    else:
+        ctx.obj["year"] = year
 
     if day == 0:
         # Ask user if he wants to use the current day
@@ -53,7 +54,16 @@ def init(day: int, year: int) -> None:
             click.echo("Day must be between 1 and 31")
             click.echo("Aborting...")
             return
-        day = i_day
+        ctx.obj["day"] = i_day
+    else:
+        ctx.obj["day"] = day
+
+
+@aoc.command()
+@click.pass_context
+def init(ctx) -> None:
+    day = ctx.obj["day"]
+    year = ctx.obj["year"]
 
     _msg = f"Initializing day {day} of year {year}"
     logger.info(_msg)
@@ -67,4 +77,14 @@ def init(day: int, year: int) -> None:
         return
 
     _msg = f"Day {day} of year {year} initialized."
+    logger.info(_msg)
+
+
+@aoc.command()
+@click.pass_context
+def run(ctx) -> None:
+    day = ctx.obj["day"]
+    year = ctx.obj["year"]
+
+    _msg = f"Running day {day} of year {year}"
     logger.info(_msg)

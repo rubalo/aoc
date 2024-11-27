@@ -1,4 +1,3 @@
-
 import logging
 from pathlib import Path
 
@@ -43,7 +42,7 @@ def create_module_directory() -> None:
 
     module_dir = get_module_directory()
     create_module_structure(module_dir)
-    
+
 
 def create_day_structure(day: int, year: int) -> None:
     """Create the directory structure for the given day and year."""
