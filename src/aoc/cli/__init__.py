@@ -8,7 +8,16 @@ import click
 
 from aoc.__about__ import __version__
 from aoc.aoc import Aoc
-from aoc.utils import create_day_data_directory, create_day_structure, create_module_structure, create_year_data_directory, create_year_directory, get_data_directory, get_day_data_directory, get_year_data_directory, run_day
+from aoc.utils import (
+    create_day_data_directory,
+    create_day_structure,
+    create_module_structure,
+    create_year_data_directory,
+    get_data_directory,
+    get_day_data_directory,
+    get_year_data_directory,
+    run_day,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -97,9 +106,10 @@ def fetch_day(ctx) -> None:
 
     _fetch_day(day, year, token)
 
-@aoc.command()
+
+@aoc.command(description="Initialize, fetch and run the given day and year.")
 @click.pass_context
-def all(ctx) -> None:
+def day(ctx) -> None:
     day = ctx.obj["day"]
     year = ctx.obj["year"]
     token = ctx.obj["token"]
@@ -107,6 +117,7 @@ def all(ctx) -> None:
     _init_day(day, year)
     _fetch_day(day, year, token)
     _run_day(day, year)
+
 
 def _init_day(day: int, year: int) -> None:
     """Initialize the given day and year."""
@@ -142,7 +153,6 @@ def _run_day(day: int, year: int) -> None:
     _msg = f"Day {day} of year {year} run."
 
 
-
 def _fetch_day(day: int, year: int, token: str) -> None:
     """Fetch the input data for the given day and year."""
 
@@ -162,5 +172,3 @@ def _fetch_day(day: int, year: int, token: str) -> None:
         logger.exception("No session token found.")
         logger.info("Aborting...")
         return
-
-

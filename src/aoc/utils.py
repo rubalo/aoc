@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime
-from datetime import UTC
 
 import git
 
@@ -24,7 +25,7 @@ def get_data_directory() -> Path:
     return get_root_directory() / Path("data")
 
 
-def get_day_data_directory(day: int, year: int=0) -> Path:
+def get_day_data_directory(day: int, year: int = 0) -> Path:
     """Get the day data directory for the given day and year."""
 
     if year == 0:
@@ -195,7 +196,5 @@ def read_input(day: int, year: int) -> list[str]:
         _msg = f"Day input file does not exist: {day_file}"
         raise FileNotFoundError(_msg)
 
-    with open(day_file, "r") as f:
-        data = f.readlines()
-
-    return data
+    with open(day_file) as f:
+        return f.readlines()
