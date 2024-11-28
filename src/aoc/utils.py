@@ -1,5 +1,7 @@
 import logging
 from pathlib import Path
+from datetime import datetime
+from datetime import UTC
 
 import git
 
@@ -15,10 +17,40 @@ def get_root_directory() -> Path:
     git_root = git_repo.git.rev_parse("--show-toplevel")
     return Path(git_root)
 
+
 def get_data_directory() -> Path:
     """Get the data directory for the Advent of Code solutions."""
 
     return get_root_directory() / Path("data")
+
+
+def get_day_data_directory(day: int, year: int=0) -> Path:
+    """Get the day data directory for the given day and year."""
+
+    if year == 0:
+        year = datetime.now(UTC).year
+
+    return get_data_directory() / Path(f"{year}/day{day}")
+
+
+def get_year_data_directory(year: int) -> Path:
+    """Get the year data directory for the given year."""
+
+    return get_data_directory() / Path(f"{year}")
+
+
+def create_year_data_directory(year: int) -> None:
+    """Create the year data directory for the given year."""
+
+    year_dir = get_year_data_directory(year)
+    create_data_structure(year_dir)
+
+
+def create_day_data_directory(day: int, year: int) -> None:
+    """Create the day data directory for the given day and year."""
+
+    day_dir = get_day_data_directory(day, year)
+    create_data_structure(day_dir)
 
 
 def get_module_directory() -> Path:
@@ -40,6 +72,16 @@ def create_module_structure(directory: Path) -> None:
         with open(directory / Path("__init__.py"), "w") as f:
             f.write("")
         logger.info("Created __init__.py file:  %s", directory / Path("__init__.py"))
+
+
+def create_data_structure(directory: Path) -> None:
+    """Create the data structure for the Advent of Code solutions."""
+
+    if directory.exists():
+        logger.debug("Directory already exists: %s", directory)
+    else:
+        directory.mkdir(parents=True, exist_ok=True)
+        logger.info("Created directory: %s", directory)
 
 
 def create_module_directory() -> None:

@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
   "click",
   "gitpython",
+  "requests",
 ]
 
 [project.urls]

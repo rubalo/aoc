@@ -7,7 +7,8 @@ from datetime import UTC, datetime
 import click
 
 from aoc.__about__ import __version__
-from aoc.utils import create_day_structure, run_day
+from aoc.aoc import Aoc
+from aoc.utils import create_day_data_directory, create_day_structure, create_module_structure, create_year_data_directory, create_year_directory, get_data_directory, get_day_data_directory, get_year_data_directory, run_day
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,9 +23,10 @@ MIN_AOC_YEAR = 2015
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
 @click.option("--day", "-d", type=int, help="Day of the Advent of Code", required=False, default=0)
 @click.option("--year", "-y", type=int, help="Year of the Advent of Code", required=False, default=0)
+@click.option("--token", "-t", help="Session token for the Advent of Code", required=False)
 @click.version_option(version=__version__, prog_name="aoc")
 @click.pass_context
-def aoc(ctx, *, verbose: bool, day: int, year: int) -> None:
+def aoc(ctx, *, verbose: bool, day: int, year: int, token: str) -> None:
     click.echo("Advent of code!")
 
     ctx.ensure_object(dict)
@@ -32,8 +34,12 @@ def aoc(ctx, *, verbose: bool, day: int, year: int) -> None:
     c_year = datetime.now(UTC).year
     c_day = datetime.now(UTC).day
 
+    ctx.obj["verbose"] = verbose
+    ctx.obj["token"] = token
+
     if verbose:
-        logger.setLevel(logging.DEBUG)
+        r_logger = logging.getLogger("root")
+        r_logger.setLevel(logging.DEBUG)
         logger.debug("Verbose mode enabled.")
 
     if year == 0:
@@ -58,12 +64,52 @@ def aoc(ctx, *, verbose: bool, day: int, year: int) -> None:
     else:
         ctx.obj["day"] = day
 
+    # init data directory
+    data_dir = get_data_directory()
+    if not data_dir.exists():
+        create_module_structure(data_dir)
+
 
 @aoc.command()
 @click.pass_context
 def init(ctx) -> None:
     day = ctx.obj["day"]
     year = ctx.obj["year"]
+
+    _init_day(day, year)
+
+
+@aoc.command()
+@click.pass_context
+def run(ctx) -> None:
+    day = ctx.obj["day"]
+    year = ctx.obj["year"]
+
+    _run_day(day, year)
+
+
+@aoc.command()
+@click.pass_context
+def fetch_day(ctx) -> None:
+    day = ctx.obj["day"]
+    year = ctx.obj["year"]
+    token = ctx.obj["token"]
+
+    _fetch_day(day, year, token)
+
+@aoc.command()
+@click.pass_context
+def all(ctx) -> None:
+    day = ctx.obj["day"]
+    year = ctx.obj["year"]
+    token = ctx.obj["token"]
+
+    _init_day(day, year)
+    _fetch_day(day, year, token)
+    _run_day(day, year)
+
+def _init_day(day: int, year: int) -> None:
+    """Initialize the given day and year."""
 
     _msg = f"Initializing day {day} of year {year}"
     logger.info(_msg)
@@ -80,11 +126,8 @@ def init(ctx) -> None:
     logger.info(_msg)
 
 
-@aoc.command()
-@click.pass_context
-def run(ctx) -> None:
-    day = ctx.obj["day"]
-    year = ctx.obj["year"]
+def _run_day(day: int, year: int) -> None:
+    """Run the given day and year."""
 
     _msg = f"Running day {day} of year {year}"
     logger.info(_msg)
@@ -97,4 +140,27 @@ def run(ctx) -> None:
         return
 
     _msg = f"Day {day} of year {year} run."
+
+
+
+def _fetch_day(day: int, year: int, token: str) -> None:
+    """Fetch the input data for the given day and year."""
+
+    _msg = f"Fetching input for day {day} of year {year}"
+    logger.info(_msg)
+
+    if not get_year_data_directory(year).exists():
+        create_year_data_directory(year)
+
+    if not get_day_data_directory(year, day).exists():
+        create_day_data_directory(day, year)
+
+    try:
+        aoc = Aoc(token)
+        aoc.fetch_input(year, day)
+    except ValueError:
+        logger.exception("No session token found.")
+        logger.info("Aborting...")
+        return
+
 
