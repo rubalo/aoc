@@ -6,11 +6,11 @@ from pathlib import Path
 
 import requests
 
-from aoc.utils import get_day_data_directory
+from aoc.utils import get_year_data_directory
 
 logger = logging.getLogger(__name__)
 
-AOC_SESSION_FILE = Path("~/.aoc_session")
+AOC_SESSION_FILE = Path("~/.aoc_session").expanduser()
 
 
 class Aoc:
@@ -20,7 +20,7 @@ class Aoc:
             return
         logger.debug("No session token provided.")
 
-        if AOC_SESSION_FILE.exists():
+        if AOC_SESSION_FILE.is_file():
             with open(AOC_SESSION_FILE) as f:
                 self.token = f.read().strip()
                 return
@@ -37,7 +37,7 @@ class Aoc:
     def fetch_input(self, year: int, day: int) -> None:
         """Fetch the input data for the given year and day."""
 
-        input_file = get_day_data_directory(year=year, day=day) / "input.txt"
+        input_file = get_year_data_directory(year=year) / f"day{day}_input.txt"
 
         if input_file.exists():
             logger.info("Input data already fetched for year %s, day %s", year, day)

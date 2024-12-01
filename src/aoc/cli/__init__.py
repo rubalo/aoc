@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 import logging
+import sys
 from datetime import UTC, datetime
 
 import click
@@ -9,13 +10,13 @@ import click
 from aoc.__about__ import __version__
 from aoc.aoc import Aoc
 from aoc.utils import (
-    create_day_data_directory,
     create_day_structure,
     create_module_structure,
     create_year_data_directory,
+    create_year_test_directory,
     get_data_directory,
-    get_day_data_directory,
     get_year_data_directory,
+    get_year_test_directory,
     run_day,
 )
 
@@ -107,7 +108,7 @@ def fetch_day(ctx) -> None:
     _fetch_day(day, year, token)
 
 
-@aoc.command(description="Initialize, fetch and run the given day and year.")
+@aoc.command(help="Initialize, fetch and run the given day and year.")
 @click.pass_context
 def day(ctx) -> None:
     day = ctx.obj["day"]
@@ -131,7 +132,7 @@ def _init_day(day: int, year: int) -> None:
     except FileExistsError:
         logger.exception("Day file already exists.")
         logger.info("Aborting...")
-        return
+        sys.exit(1)
 
     _msg = f"Day {day} of year {year} initialized."
     logger.info(_msg)
@@ -148,7 +149,7 @@ def _run_day(day: int, year: int) -> None:
     except FileNotFoundError:
         logger.exception("Day file does not exist.")
         logger.info("Aborting...")
-        return
+        sys.exit(1)
 
     _msg = f"Day {day} of year {year} run."
 
@@ -162,8 +163,8 @@ def _fetch_day(day: int, year: int, token: str) -> None:
     if not get_year_data_directory(year).exists():
         create_year_data_directory(year)
 
-    if not get_day_data_directory(year, day).exists():
-        create_day_data_directory(day, year)
+    if not get_year_test_directory(year).exists():
+        create_year_test_directory(year)
 
     try:
         aoc = Aoc(token)
@@ -171,4 +172,4 @@ def _fetch_day(day: int, year: int, token: str) -> None:
     except ValueError:
         logger.exception("No session token found.")
         logger.info("Aborting...")
-        return
+        sys.exit(1)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
 from pathlib import Path
 
 import git
@@ -25,19 +24,35 @@ def get_data_directory() -> Path:
     return get_root_directory() / Path("data")
 
 
-def get_day_data_directory(day: int, year: int = 0) -> Path:
-    """Get the day data directory for the given day and year."""
+def get_test_directory() -> Path:
+    """Get the test directory for the Advent of Code solutions."""
 
-    if year == 0:
-        year = datetime.now(UTC).year
+    return get_root_directory() / Path("tests")
 
-    return get_data_directory() / Path(f"{year}/day{day}")
+
+def get_year_directory(year: int) -> Path:
+    """Get the year directory for the given year."""
+
+    return get_module_directory() / Path(f"y{year}")
+
+
+def get_year_test_directory(year: int) -> Path:
+    """Get the year test directory for the given year."""
+
+    return get_test_directory() / Path(f"y{year}")
+
+
+def create_year_test_directory(year: int) -> None:
+    """Create the year test directory for the given year."""
+
+    year_dir = get_year_test_directory(year)
+    create_module_structure(year_dir)
 
 
 def get_year_data_directory(year: int) -> Path:
     """Get the year data directory for the given year."""
 
-    return get_data_directory() / Path(f"{year}")
+    return get_data_directory() / Path(f"y{year}")
 
 
 def create_year_data_directory(year: int) -> None:
@@ -45,13 +60,6 @@ def create_year_data_directory(year: int) -> None:
 
     year_dir = get_year_data_directory(year)
     create_data_structure(year_dir)
-
-
-def create_day_data_directory(day: int, year: int) -> None:
-    """Create the day data directory for the given day and year."""
-
-    day_dir = get_day_data_directory(day, year)
-    create_data_structure(day_dir)
 
 
 def get_module_directory() -> Path:
@@ -85,6 +93,16 @@ def create_data_structure(directory: Path) -> None:
         logger.info("Created directory: %s", directory)
 
 
+def create_test_structure(directory: Path) -> None:
+    """Create the test structure for the Advent of Code solutions."""
+
+    if directory.exists():
+        logger.debug("Directory already exists: %s", directory)
+    else:
+        create_module_structure(directory)
+        logger.info("Created directory: %s", directory)
+
+
 def create_module_directory() -> None:
     """Create the module directory for the Advent of Code solutions."""
 
@@ -103,25 +121,21 @@ def create_day_structure(day: int, year: int) -> None:
     # Create the year directory
     create_year_directory(year)
 
-    # Create the day directory
-    create_day_directory(day, year)
-
     # Create the day file
     create_day_file(day, year)
+
+    # Create the yeartest directory
+    create_year_test_directory(year)
+
+    # Create the day test file
+    create_day_test_file(day, year)
 
 
 def create_year_directory(year: int) -> None:
     """Create the year directory for the given year."""
 
-    year_dir = get_module_directory() / Path(f"{year}")
+    year_dir = get_module_directory() / Path(f"y{year}")
     create_module_structure(year_dir)
-
-
-def create_day_directory(day: int, year: int) -> None:
-    """Create the day directory for the given day and year."""
-
-    day_dir = get_module_directory() / Path(f"{year}/day{day}")
-    create_module_structure(day_dir)
 
 
 def create_day_file(day: int, year: int) -> None:
@@ -130,7 +144,6 @@ def create_day_file(day: int, year: int) -> None:
     template = f"""# Advent of Code {year} - Day {day}
 
 from __future__ import annotations
-from pathlib import Path
 from aoc.utils import read_input
 
 def get_input_data() -> list[str]:
@@ -141,19 +154,22 @@ def get_test_input_data() -> list[str]:
     return [""]
 
 
-def part1(data: list[str]) -> int:  # noqa
+def part1() -> int:
+    data = get_input_data()
     return 0
 
-def part2(data: list[str]) -> int:  # noqa
-    return 0
 
+def part2() -> int:
+    data = get_input_data()
+    return 0
 """
 
-    day_file = get_module_directory() / Path(f"{year}/day{day}/day{day}.py")
+    day_file = get_year_directory(year) / Path(f"day{day}.py")
 
     if day_file.exists():
-        _msg = f"Day file already exists: {day_file}"
-        raise FileExistsError(_msg)
+        _msg = f"Day file already exists: {day_file}, skipping..."
+        logger.warning(_msg)
+        return
 
     with open(day_file, "w") as f:
         f.write(template)
@@ -161,10 +177,40 @@ def part2(data: list[str]) -> int:  # noqa
     logger.info("Created day file: %s", day_file)
 
 
+def create_day_test_file(day: int, year: int) -> None:
+    """Create the day test file for the given day and year from a template."""
+
+    template = f"""# Advent of Code {year} - Day {day} - Test
+
+from __future__ import annotations
+from pathlib import Path
+
+from aoc.y{year}.day{day} import part1, part2
+
+def test_part1() -> None:
+    assert part1() == 0
+
+def test_part2() -> None:
+    assert part2() == 0
+"""
+
+    day_test_file = get_year_test_directory(year) / Path(f"test_day{day}.py")
+
+    if day_test_file.exists():
+        _msg = f"Day test file already exists: {day_test_file}, skipping..."
+        logger.warning(_msg)
+        return
+
+    with open(day_test_file, "w") as f:
+        f.write(template)
+
+    logger.info("Created day test file: %s", day_test_file)
+
+
 def run_day(day: int, year: int) -> None:
     """Run the given day and year."""
 
-    day_file = get_module_directory() / Path(f"{year}/day{day}/day{day}.py")
+    day_file = get_module_directory() / Path(f"y{year}/day{day}.py")
 
     if not day_file.exists():
         _msg = f"Day file does not exist: {day_file}"
@@ -173,14 +219,11 @@ def run_day(day: int, year: int) -> None:
     # Import the day module
     from importlib import import_module
 
-    module = import_module(f"aoc.{year}.day{day}.day{day}")
-
-    # Read the input
-    data = read_input(day, year)
+    module = import_module(f"aoc.y{year}.day{day}")
 
     # Run the solutions
-    part1 = module.part1(data)
-    part2 = module.part2(data)
+    part1 = module.part1()
+    part2 = module.part2()
 
     logger.info("Day %d of year %d", day, year)
     logger.info("Part 1: %s", part1)
@@ -190,7 +233,7 @@ def run_day(day: int, year: int) -> None:
 def read_input(day: int, year: int) -> list[str]:
     """Read the input data for the given day and year."""
 
-    day_file = get_data_directory() / Path(f"{year}/day{day}/input.txt")
+    day_file = get_data_directory() / Path(f"y{year}/day{day}_input.txt")
 
     if not day_file.exists():
         _msg = f"Day input file does not exist: {day_file}"
