@@ -164,7 +164,7 @@ def part2() -> int:
     return 0
 """
 
-    day_file = get_year_directory(year) / Path(f"day{day}.py")
+    day_file = get_year_directory(year) / Path(f"day{day:02}.py")
 
     if day_file.exists():
         _msg = f"Day file already exists: {day_file}, skipping..."
@@ -194,7 +194,7 @@ def test_part2() -> None:
     assert part2() == 0
 """
 
-    day_test_file = get_year_test_directory(year) / Path(f"test_day{day}.py")
+    day_test_file = get_year_test_directory(year) / Path(f"test_day{day:02}.py")
 
     if day_test_file.exists():
         _msg = f"Day test file already exists: {day_test_file}, skipping..."

@@ -37,7 +37,7 @@ class Aoc:
     def fetch_input(self, year: int, day: int) -> None:
         """Fetch the input data for the given year and day."""
 
-        input_file = get_year_data_directory(year=year) / f"day{day}_input.txt"
+        input_file = get_year_data_directory(year=year) / f"day{day:02}_input.txt"
 
         if input_file.exists():
             logger.info("Input data already fetched for year %s, day %s", year, day)
