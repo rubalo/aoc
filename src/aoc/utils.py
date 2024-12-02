@@ -185,7 +185,7 @@ def create_day_test_file(day: int, year: int) -> None:
 from __future__ import annotations
 from pathlib import Path
 
-from aoc.y{year}.day{day} import part1, part2
+from aoc.y{year}.day{day:02} import part1, part2
 
 def test_part1() -> None:
     assert part1() == 0
@@ -210,7 +210,7 @@ def test_part2() -> None:
 def run_day(day: int, year: int) -> None:
     """Run the given day and year."""
 
-    day_file = get_module_directory() / Path(f"y{year}/day{day}.py")
+    day_file = get_module_directory() / Path(f"y{year}/day{day:02}.py")
 
     if not day_file.exists():
         _msg = f"Day file does not exist: {day_file}"
@@ -219,7 +219,7 @@ def run_day(day: int, year: int) -> None:
     # Import the day module
     from importlib import import_module
 
-    module = import_module(f"aoc.y{year}.day{day}")
+    module = import_module(f"aoc.y{year}.day{day:02}")
 
     # Run the solutions
     part1 = module.part1()
@@ -233,7 +233,7 @@ def run_day(day: int, year: int) -> None:
 def read_input(day: int, year: int) -> list[str]:
     """Read the input data for the given day and year."""
 
-    day_file = get_data_directory() / Path(f"y{year}/day{day}_input.txt")
+    day_file = get_data_directory() / Path(f"y{year}/day{day:02}_input.txt")
 
     if not day_file.exists():
         _msg = f"Day input file does not exist: {day_file}"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aoc.y2024.day1 import part1, part2
+from aoc.y2024.day01 import part1, part2
 
 
 def test_part1() -> None:
