@@ -155,12 +155,12 @@ def get_test_input_data() -> list[str]:
 
 
 def part1() -> int:
-    data = get_input_data()
+    data = get_input_data()  # noqa
     return 0
 
 
 def part2() -> int:
-    data = get_input_data()
+    data = get_input_data()  # noqa
     return 0
 """
 
