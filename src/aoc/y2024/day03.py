@@ -17,7 +17,10 @@ def get_test_input_data() -> list[str]:
 
 def part1() -> int:
     data = get_input_data()
+    return multiply(data)
 
+
+def multiply(data: list[str]) -> int:
     parser = re.compile(r"mul\((\d+),(\d+)\)")
     res = 0
 
@@ -28,6 +31,33 @@ def part1() -> int:
     return res
 
 
+def clean_data(data: str) -> str:
+    inner = True
+
+    dont_pattern = re.compile(r"don't\(\)")
+    do_pattern = re.compile(r"do\(\)")
+
+    dont_pos = [x.span()[0] for x in dont_pattern.finditer(data)]
+    do_pos = [x.span()[0] for x in do_pattern.finditer(data)]
+
+    res = ""
+    for i, char in enumerate(data):
+        if i in do_pos:
+            inner = True
+        if i in dont_pos:
+            inner = False
+        if inner:
+            res += char
+
+    return res
+
+
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    data = get_input_data()
+    j_data = "".join([x.rstrip() for x in data])
+
+    c_data = [
+        clean_data(j_data),
+    ]
+
+    return multiply(c_data)
