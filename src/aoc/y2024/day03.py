@@ -72,4 +72,8 @@ def part2() -> int:
     pattern = re.compile(r"(don't\(\).*?do\(\))|(don't\(\).*?$)")
     c_data = pattern.sub("", j_data)
 
-    return multiply([c_data,])
+    return multiply(
+        [
+            c_data,
+        ]
+    )

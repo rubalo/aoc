@@ -28,6 +28,7 @@ dependencies = [
   "click",
   "gitpython",
   "ipdb",
+  "numpy",
   "requests",
 ]
 
