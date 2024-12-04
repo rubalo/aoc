@@ -222,11 +222,7 @@ def get_test_input_data() -> list[str]:
     return data.split("\n")
 
 
-def part1() -> int:
-    data = get_input_data()
-    # data = get_test_input_data()
-
-    # Par Modules
+def init(data: list[str]) -> None:
     parse_input(data)
 
     # Build network
@@ -237,6 +233,13 @@ def part1() -> int:
 
     # Show network
     # display_network()
+
+def part1() -> int:
+    data = get_input_data()
+
+    init(data)
+
+    # Par Modules
 
     nb_high = 0
     nb_low = 0
@@ -260,7 +263,45 @@ def part1() -> int:
 
     return nb_high * nb_low
 
+def count_pulses(f_src: str, f_dest:str, f_pulse:Pulse) -> int:
+
+    nb_press = 0
+
+    while True:
+        PULSES.put(["Button", "Broadcaster", Pulse.LOW])
+        nb_press += 1
+
+        while PULSES.qsize() > 0:
+            source, dest, pulse = PULSES.get()
+
+            if source == f_src and dest == f_dest and pulse == f_pulse:
+                return nb_press
+
+            MODULES[dest].process_signal(source, pulse)
+
 
 def part2() -> int:
     data = get_input_data()  # noqa
-    return 0
+    init(data)  # noqa
+
+    # display_network()  # noqa
+
+    # How many inputs to get fg to send a high pulse to vr
+    vr_p = count_pulses("fg", "vr", Pulse.HIGH)
+    print(f"fg -> vr: {vr_p}")
+    # How many inputs to get pq to send a high pulse to vr
+    pq_p = count_pulses("pq", "vr", Pulse.HIGH)
+    print(f"pq -> vr: {pq_p}")
+    # How many inputs to get fm to send a high pulse to vr
+    fm_p = count_pulses("fm", "vr", Pulse.HIGH)
+    print(f"fm -> vr: {fm_p}")
+    # How many inputs to get dk to send a high pulse to vr
+    dk_p = count_pulses("dk", "vr", Pulse.HIGH)
+    print(f"dk -> vr: {dk_p}")
+
+    import math
+
+    lcm = math.lcm(vr_p, pq_p, fm_p, dk_p)
+    print(f"VR: {vr_p} - PQ: {pq_p} - FM: {fm_p} - DK: {dk_p} - LCM: {lcm}")
+
+    return vr_p * pq_p * fm_p * dk_p
