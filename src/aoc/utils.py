@@ -5,6 +5,8 @@ from pathlib import Path
 
 import git
 
+from aoc.aoc import Aoc
+
 MODULE_PATH = "src/aoc"
 
 logger = logging.getLogger(__name__)
@@ -238,7 +240,12 @@ def read_input(day: int, year: int) -> list[str]:
 
     if not day_file.exists():
         _msg = f"Day input file does not exist: {day_file}"
-        raise FileNotFoundError(_msg)
+        try:
+            aoc = Aoc(token=None)
+            input_file = get_year_data_directory(year=year) / f"day{day:02}_input.txt"
+            aoc.fetch_input(year, day, input_file)
+        except Exception as e:
+            raise FileNotFoundError(_msg) from e
 
     with open(day_file) as f:
         return f.readlines()

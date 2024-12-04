@@ -6,8 +6,6 @@ from pathlib import Path
 
 import requests
 
-from aoc.utils import get_year_data_directory
-
 logger = logging.getLogger(__name__)
 
 AOC_SESSION_FILE = Path("~/.aoc_session").expanduser()
@@ -34,10 +32,8 @@ class Aoc:
         logger.error("No session token found. Please provide one.")
         raise ValueError
 
-    def fetch_input(self, year: int, day: int) -> None:
+    def fetch_input(self, year: int, day: int, input_file: Path) -> None:
         """Fetch the input data for the given year and day."""
-
-        input_file = get_year_data_directory(year=year) / f"day{day:02}_input.txt"
 
         if input_file.exists():
             logger.info("Input data already fetched for year %s, day %s", year, day)

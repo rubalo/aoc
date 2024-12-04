@@ -169,7 +169,8 @@ def _fetch_day(day: int, year: int, token: str) -> None:
 
     try:
         aoc = Aoc(token)
-        aoc.fetch_input(year, day)
+        input_file = get_year_data_directory(year=year) / f"day{day:02}_input.txt"
+        aoc.fetch_input(year, day, input_file)
     except ValueError:
         logger.exception("No session token found.")
         logger.info("Aborting...")
