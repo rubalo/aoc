@@ -52,7 +52,7 @@ def clean_data(data: str) -> str:
     return res
 
 
-def part2() -> int:
+def part2_1() -> int:
     data = get_input_data()
     j_data = "".join([x.rstrip() for x in data])
 
@@ -61,3 +61,15 @@ def part2() -> int:
     ]
 
     return multiply(c_data)
+
+
+def part2() -> int:
+    # First idea but wasn't working because it was applied line by line
+    # Now that I know that the data is in one line, I can apply it to the whole data
+    data = get_input_data()
+    j_data = "".join([x.rstrip() for x in data])
+
+    pattern = re.compile(r"(don't\(\).*?do\(\))|(don't\(\).*?$)")
+    c_data = pattern.sub("", j_data)
+
+    return multiply([c_data,])
