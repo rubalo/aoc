@@ -74,6 +74,50 @@ def part1() -> int:
     return res
 
 
-def part2() -> int:
-    data = get_input_data()  # noqa
+def find_x_pattern(matrix: np.array) -> int:
+    res = 0
+
+    if matrix.shape != (3, 3):
+        return res
+
+    # First check
+    res += check_pattern(matrix)
+
+    # Rotate 90 degrees
+    matrix = np.rot90(matrix)
+    res += check_pattern(matrix)
+
+    # Rotate 180 degrees
+    matrix = np.rot90(matrix)
+    res += check_pattern(matrix)
+
+    # Rotate 270 degrees
+    matrix = np.rot90(matrix)
+    res += check_pattern(matrix)
+
+    return res
+
+
+def check_pattern(matrix: np.array) -> int:
+    if (
+        matrix[0][0] == "M"
+        and matrix[1][1] == "A"
+        and matrix[2][2] == "S"
+        and matrix[2][0] == "M"
+        and matrix[0][2] == "S"
+    ):
+        return 1
     return 0
+
+
+def part2() -> int:
+    data = get_input_data()
+    matrix = np.array([list(x) for x in data])
+
+    res = 0
+
+    for i in range(matrix.shape[0] - 2):
+        for j in range(matrix.shape[1] - 2):
+            res += find_x_pattern(matrix[i : i + 3, j : j + 3])
+
+    return res
