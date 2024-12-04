@@ -28,6 +28,9 @@ dependencies = [
   "click",
   "gitpython",
   "ipdb",
+  "pyvis",
+  "matplotlib",
+  "networkx",
   "numpy",
   "requests",
 ]
