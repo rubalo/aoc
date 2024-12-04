@@ -90,12 +90,13 @@ def init(ctx) -> None:
 
 
 @aoc.command()
+@click.option("--part", "-p", type=int, help="Part of the Advent of Code", required=False, default=0)
 @click.pass_context
-def run(ctx) -> None:
+def run(ctx, part) -> None:
     day = ctx.obj["day"]
     year = ctx.obj["year"]
 
-    _run_day(day, year)
+    _run_day(day, year, part)
 
 
 @aoc.command()
@@ -117,7 +118,7 @@ def day(ctx) -> None:
 
     _init_day(day, year)
     _fetch_day(day, year, token)
-    _run_day(day, year)
+    _run_day(day, year, 0)
 
 
 def _init_day(day: int, year: int) -> None:
@@ -138,14 +139,14 @@ def _init_day(day: int, year: int) -> None:
     logger.info(_msg)
 
 
-def _run_day(day: int, year: int) -> None:
+def _run_day(day: int, year: int, part: int) -> None:
     """Run the given day and year."""
 
     _msg = f"Running day {day} of year {year}"
     logger.info(_msg)
 
     try:
-        run_day(day, year)
+        run_day(day, year, part)
     except FileNotFoundError:
         logger.exception("Day file does not exist.")
         logger.info("Aborting...")

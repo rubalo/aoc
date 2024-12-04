@@ -207,7 +207,7 @@ def test_part2() -> None:
     logger.info("Created day test file: %s", day_test_file)
 
 
-def run_day(day: int, year: int) -> None:
+def run_day(day: int, year: int, part: int) -> None:
     """Run the given day and year."""
 
     day_file = get_module_directory() / Path(f"y{year}/day{day:02}.py")
@@ -221,13 +221,14 @@ def run_day(day: int, year: int) -> None:
 
     module = import_module(f"aoc.y{year}.day{day:02}")
 
-    # Run the solutions
-    part1 = module.part1()
-    part2 = module.part2()
-
     logger.info("Day %d of year %d", day, year)
-    logger.info("Part 1: %s", part1)
-    logger.info("Part 2: %s", part2)
+    # Run the solutions
+    if part in (0, 1):
+        part1 = module.part1()
+        logger.info("Part 1: %s", part1)
+    if part in (0, 2):
+        part2 = module.part2()
+        logger.info("Part 2: %s", part2)
 
 
 def read_input(day: int, year: int) -> list[str]:
