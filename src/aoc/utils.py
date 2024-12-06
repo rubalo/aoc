@@ -148,8 +148,13 @@ def create_day_file(day: int, year: int) -> None:
 from __future__ import annotations
 from aoc.utils import read_input
 
-def get_input_data() -> list[str]:
-    return read_input(day={day}, year={year})
+def get_input_data():
+    data = read_input(day={day}, year={year})
+    return parse_data(data)
+
+
+def parse_data(data: list[str]):
+    return data
 
 
 def get_test_input_data() -> list[str]:
