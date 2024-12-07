@@ -29,6 +29,20 @@ def get_test_input_data() -> list[str]:
 ........#.
 #.........
 ......#..."""
+
+    # Res = 19
+    data = """...........#.....#......
+...................#....
+...#.....##.............
+......................#.
+..................#.....
+..#.....................
+....................#...
+........................
+.#........^.............
+..........#..........#..
+..#.....#..........#....
+........#.....#..#......"""
     return parse_data(data.splitlines())
 
 
@@ -53,12 +67,12 @@ def find_guard(data: np.array) -> tuple[complex, D] | None:
     return None
 
 
-def part1() -> int:
-    data = get_input_data()
-    res = 1
+def get_guard_path(g_s_pos: complex, d: D, data: np.array, mark: str = "X") -> list[tuple[complex, D]]:
+    g_pos = g_s_pos
 
-    g_pos, d = find_guard(data)
-    x, y = int(g_pos.real), int(g_pos.imag)
+    guard_path = [
+        (g_pos, d),
+    ]
 
     while True:
         n_coord = g_pos + d.value
@@ -67,22 +81,62 @@ def part1() -> int:
         if not (0 <= n_x < data.shape[0] and 0 <= n_y < data.shape[1]):
             break
 
-        if data[n_x, n_y] == "#":
+        if data[n_x, n_y] in ["#", "0"]:
             d = D(d.value * -1j)
             continue
 
-        if data[n_x, n_y] == ".":
-            res += 1
-
         # move forward
         g_pos += d.value
-        # update position
-        x, y = int(g_pos.real), int(g_pos.imag)
-        data[x, y] = "X"
+        if (g_pos, d) in guard_path:
+            raise ValueError
 
-    return res
+        guard_path.append((g_pos, d))
+
+        # Mark the start posityion in blue
+        if g_pos == g_s_pos:
+            data[int(g_pos.real), int(g_pos.imag)] = "^"
+        else:
+            data[int(g_pos.real), int(g_pos.imag)] = mark
+
+    return guard_path
+
+
+def part1() -> int:
+    data = get_input_data()
+    g_pos, d = find_guard(data)
+    guard_path = get_guard_path(g_pos, d, data)
+    guard_poss = {g for g, _ in guard_path}
+    return len(guard_poss)
 
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    data = get_input_data()
+    res = 0
+    g_pos, d = find_guard(data)
+
+    data_1 = data.copy()
+    guard_path = get_guard_path(g_pos, d, data_1)
+
+    obstacles = set()
+
+    cpt = 0
+    for pg, _ in guard_path[1:]:
+        data_w_obs = data.copy()
+
+        if pg == g_pos:
+            continue
+
+        if pg in obstacles:
+            continue
+
+        x, y = int(pg.real), int(pg.imag)
+
+        obstacles.add(pg)
+        try:
+            data_w_obs[x, y] = "0"
+            get_guard_path(g_pos, d, data_w_obs, mark="*")
+        except ValueError:
+            res += 1
+        cpt += 1
+
+    return res
