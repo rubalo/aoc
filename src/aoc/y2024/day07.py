@@ -34,6 +34,7 @@ def get_test_input_data() -> list[str]:
 192: 17 8 14
 21037: 9 7 18 13
 292: 11 6 16 20"""
+    # data = "213: 2 1 3"
     return parse_data(data.split("\n"))
 
 
@@ -51,6 +52,25 @@ def compute(n: int, ns: list[int], test_value: int):
     return
 
 
+def compute2(n1: int, ns: list[int], test_value: int):
+    if len(ns) == 0:
+        if n1 == test_value:
+            raise TestValidated
+        return
+
+    if len(ns) == 1:
+        if n1 * ns[0] == test_value:
+            raise TestValidated
+        if n1 + ns[0] == test_value:
+            raise TestValidated
+
+    compute2(int(str(n1) + str(ns[0])), ns[1:], test_value)
+    compute2(n1 * ns[0], ns[1:], test_value)
+    compute2(n1 + ns[0], ns[1:], test_value)
+
+    return
+
+
 def part1() -> int:
     data = get_input_data()
     # data = get_test_input_data()
@@ -64,5 +84,12 @@ def part1() -> int:
 
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    data = get_input_data()
+    # data = get_test_input_data()
+    res = 0
+    for t_res, ns in data:
+        try:
+            compute2(ns[0], ns[1:], t_res)
+        except TestValidated:
+            res += t_res
+    return res

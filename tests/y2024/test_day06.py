@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from aoc.y2024.day06 import part1
+import pytest
+
+from aoc.y2024.day06 import part1, part2
 
 
 def test_part1() -> None:
     assert part1() == 4776
 
 
+@pytest.mark.skip("Brute force solution, takes too long")
 def test_part2() -> None:
-    # Test takes too long to run
-    # assert part2() == 1586
-    pass
+    assert part2() == 1586
