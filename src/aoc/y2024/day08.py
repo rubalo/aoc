@@ -33,22 +33,24 @@ def get_test_input_data() -> list[LiteralString]:
 ............"""
     return parse_data(data.split("\n"))
 
-
-D = {}
 DATA = get_input_data()
 
 def parse_antennas():
+    d = {}
     for i, row in enumerate(DATA):
         for j, _ in enumerate(row):
             if DATA[i, j] == ".":
                 continue
 
             antenna = str(DATA[i, j])
-            if antenna not in D:
-                D[antenna] = []
+            if antenna not in d:
+                d[antenna] = []
 
-            D[antenna].append(i + j * 1j)
+            d[antenna].append(i + j * 1j)
+    return d
 
+D = parse_antennas()
+ANTINODES = set()
 
 def print_data():
     for row in DATA:
@@ -107,7 +109,6 @@ def part1() -> int:
     global ANTINODES  # noqa
     ANTINODES = set()
     print_data()
-    parse_antennas()
     get_frequency_antinodes(part=1)
     print_data()
     return len(ANTINODES)
@@ -117,7 +118,6 @@ def part2() -> int:
     global ANTINODES  # noqa
     ANTINODES = set()
     print_data()
-    parse_antennas()
     get_frequency_antinodes(part=2)
     print_data()
     return len(ANTINODES)
