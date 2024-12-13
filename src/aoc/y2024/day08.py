@@ -33,7 +33,9 @@ def get_test_input_data() -> list[LiteralString]:
 ............"""
     return parse_data(data.split("\n"))
 
+
 DATA = get_input_data()
+
 
 def parse_antennas():
     d = {}
@@ -49,8 +51,10 @@ def parse_antennas():
             d[antenna].append(i + j * 1j)
     return d
 
+
 D = parse_antennas()
 ANTINODES = set()
+
 
 def print_data():
     for row in DATA:

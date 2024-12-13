@@ -1,0 +1,76 @@
+# Advent of Code 2024 - Day 9
+
+from __future__ import annotations
+
+from typing import LiteralString
+
+from aoc.utils import read_input
+
+
+def get_input_data():
+    data = read_input(day=9, year=2024)
+    return parse_data(data)
+
+
+def parse_data(data: list[str]) -> list[int]:
+    return [list(map(int, list(line.rstrip()))) for line in data][0]  # noqa
+
+
+def get_test_input_data() -> list[LiteralString]:
+    data = """2333133121414131402"""
+    # data = """12345"""
+    return parse_data(data.split("\n"))
+
+
+def part1() -> int:
+    data = get_input_data()
+    # data = get_test_input_data()
+
+    d_map = []
+
+    cpt = 0
+    for i in range(len(data)):
+        if i % 2:
+            d_map.append((data[i], -1))
+        else:
+            d_map.append((cpt, data[i]))
+            cpt += 1
+
+    f_map = []
+
+    while len(d_map) > 0:
+        ele_1 = d_map.pop(0)
+
+        if ele_1[1] > 0:
+            f_map.append((ele_1[0], 1))
+            d_map.insert(0, (ele_1[0], ele_1[1] - 1))
+            continue
+
+        if ele_1[1] == -1 and ele_1[0] == 0:
+            continue
+
+        if ele_1[1] == -1 and len(d_map) > 0:
+            file_no, cpt = d_map.pop()
+            if cpt == -1:
+                d_map.insert(0, (ele_1[0], -1))
+                continue
+            if cpt == 0:
+                d_map.insert(0, (ele_1[0], -1))
+                continue
+
+            f_map.append((file_no, 1))
+            d_map.insert(0, (ele_1[0] - 1, -1))
+            d_map.append((file_no, cpt - 1))
+
+    res = 0
+
+    m_list = enumerate([x for x, _ in f_map])
+    for pos, file_no in m_list:
+        res += pos * file_no
+
+    return res
+
+
+def part2() -> int:
+    data = get_input_data()  # noqa
+    return 0
