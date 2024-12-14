@@ -71,9 +71,8 @@ def part1() -> int:
 
 
 def parse_data2(data: list[str]) -> tuple[dict[int, list[int]], dict[int, tuple[int, int]]]:
-
     file_no = 0
-    blocs = dict()
+    blocs = {}
     free_spaces = defaultdict(list)
     ind = 0
     for pos, nb_blocs in enumerate([int(x) for x in data]):
@@ -89,14 +88,16 @@ def parse_data2(data: list[str]) -> tuple[dict[int, list[int]], dict[int, tuple[
 
 
 def find_space(nb_blocs: int, free_spaces: dict[int, list[int]]) -> int:
-    for i in sorted(free_spaces.keys()):
+    free_spaces_number = [(x, y[0]) for x, y in free_spaces.items() if x >= nb_blocs]
+    if not free_spaces_number:
+        return -1
 
-        if i >= nb_blocs:
-            return i
-    return -1
+    free_spaces_number = sorted(free_spaces_number, key=lambda x: x[1])
+
+    return free_spaces_number[0][0]
+
 
 def move(bloc_no: int, new_space: int, blocs: dict[tuple[int, int]], free_spaces: dict[int, list[int]]):
-
     new_pos = free_spaces[new_space].pop(0)
 
     if new_pos > bloc_no:
@@ -104,37 +105,39 @@ def move(bloc_no: int, new_space: int, blocs: dict[tuple[int, int]], free_spaces
         return blocs, free_spaces
 
     if free_spaces[new_space] == []:
-        del(free_spaces[new_space])
+        del free_spaces[new_space]
 
-    file_no , nb_blocs = blocs[bloc_no]
+    file_no, nb_blocs = blocs[bloc_no]
 
     blocs[new_pos] = (file_no, nb_blocs)
-    del(blocs[bloc_no])
+    del blocs[bloc_no]
 
     if new_space > nb_blocs:
         new_free_space_size = new_space - nb_blocs
-        free_spaces[new_free_space_size].append(new_pos+nb_blocs)
+        free_spaces[new_free_space_size].append(new_pos + nb_blocs)
         free_spaces[new_free_space_size] = sorted(free_spaces[new_free_space_size])
 
     return blocs, free_spaces
 
+
 def print_all(blocs: dict[int, tuple[int, int]], free_spaces: dict[int, list[int]]):
-    all = []
+    p_all = []
     for k, v in blocs.items():
         file_no, nb_blocs = v
-        all.append((k, "'" + str(file_no) + "'", nb_blocs))
+        p_all.append((k, str(file_no), nb_blocs))
     for k, v in free_spaces.items():
         for i in v:
-            all.append((i, ".", k))
+            p_all.append((i, ".", k))  # noqa
 
-    all = sorted(all)
-    for _, file_no, nb_blocs in all:
-        print(file_no * nb_blocs, end="")
+    p_all = sorted(p_all)
+    for _, file_no, nb_blocs in p_all:
+        print(file_no * nb_blocs, end="")  # noqa
 
-    print()
+    print()  # noqa
+
 
 def part2() -> int:
-    data = get_input_data()  # noqa
+    data = get_input_data()
     # data = get_test_input_data()[0]
     free_spaces, blocs = parse_data2(data)
 
@@ -148,8 +151,6 @@ def part2() -> int:
     for pos, v in blocs.items():
         file_no, nb_blocs = v
         for i in range(nb_blocs):
-            res += file_no * (pos +i)
+            res += file_no * (pos + i)
 
-    if 6409473350968 >= res or res >= 8633291891221:
-        print("KO")
     return res
