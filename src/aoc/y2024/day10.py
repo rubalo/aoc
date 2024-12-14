@@ -54,6 +54,29 @@ def find_trails(data, i, j, trail_id):
     walk(data, i, j, RIGHT, trail_id)
 
 
+def walk2(data, i, j, direction):
+    i1 = i + int(direction.real)
+    j1 = j + int(direction.imag)
+    if i1 < 0 or i1 >= len(data) or j1 < 0 or j1 >= len(data[0]):
+        return 0
+    if data[i1, j1] != data[i, j] + 1:
+        return 0
+    if data[i1, j1] == 9:  # noqa
+        return 1
+    return find_trails2(data, i1, j1)
+
+
+def find_trails2(data, i, j):
+    return sum(
+        [
+            walk2(data, i, j, UP),
+            walk2(data, i, j, DOWN),
+            walk2(data, i, j, LEFT),
+            walk2(data, i, j, RIGHT),
+        ]
+    )
+
+
 TRAILS = set()
 
 
@@ -75,5 +98,15 @@ def part1() -> int:
 
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    r_data = get_input_data()
+    # r_data = get_test_input_data()
+    data = parse_data(r_data)
+    cpt = 1
+    res = 0
+    for i, row in enumerate(data):
+        for j, _ in enumerate(row):
+            if data[i, j] == 0:
+                trail_count = find_trails2(data, i, j)
+                cpt += 1
+                res += trail_count
+    return res
