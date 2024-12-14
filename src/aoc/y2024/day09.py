@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import LiteralString
 
 from aoc.utils import read_input
@@ -18,13 +19,11 @@ def parse_data(data: list[str]) -> list[int]:
 
 def get_test_input_data() -> list[LiteralString]:
     data = """2333133121414131402"""
-    # data = """12345"""
-    return parse_data(data.split("\n"))
+    return data.split("\n")
 
 
 def part1() -> int:
     data = get_input_data()
-    # data = get_test_input_data()
 
     d_map = []
 
@@ -71,6 +70,86 @@ def part1() -> int:
     return res
 
 
+def parse_data2(data: list[str]) -> tuple[dict[int, list[int]], dict[int, tuple[int, int]]]:
+
+    file_no = 0
+    blocs = dict()
+    free_spaces = defaultdict(list)
+    ind = 0
+    for pos, nb_blocs in enumerate([int(x) for x in data]):
+        if pos % 2:
+            free_spaces[nb_blocs].append(ind)
+            free_spaces[nb_blocs] = sorted(free_spaces[nb_blocs])
+        else:
+            blocs[ind] = (file_no, nb_blocs)
+            file_no += 1
+        ind += nb_blocs
+
+    return free_spaces, blocs
+
+
+def find_space(nb_blocs: int, free_spaces: dict[int, list[int]]) -> int:
+    for i in sorted(free_spaces.keys()):
+
+        if i >= nb_blocs:
+            return i
+    return -1
+
+def move(bloc_no: int, new_space: int, blocs: dict[tuple[int, int]], free_spaces: dict[int, list[int]]):
+
+    new_pos = free_spaces[new_space].pop(0)
+
+    if new_pos > bloc_no:
+        free_spaces[new_space].insert(0, new_pos)
+        return blocs, free_spaces
+
+    if free_spaces[new_space] == []:
+        del(free_spaces[new_space])
+
+    file_no , nb_blocs = blocs[bloc_no]
+
+    blocs[new_pos] = (file_no, nb_blocs)
+    del(blocs[bloc_no])
+
+    if new_space > nb_blocs:
+        new_free_space_size = new_space - nb_blocs
+        free_spaces[new_free_space_size].append(new_pos+nb_blocs)
+        free_spaces[new_free_space_size] = sorted(free_spaces[new_free_space_size])
+
+    return blocs, free_spaces
+
+def print_all(blocs: dict[int, tuple[int, int]], free_spaces: dict[int, list[int]]):
+    all = []
+    for k, v in blocs.items():
+        file_no, nb_blocs = v
+        all.append((k, "'" + str(file_no) + "'", nb_blocs))
+    for k, v in free_spaces.items():
+        for i in v:
+            all.append((i, ".", k))
+
+    all = sorted(all)
+    for _, file_no, nb_blocs in all:
+        print(file_no * nb_blocs, end="")
+
+    print()
+
 def part2() -> int:
     data = get_input_data()  # noqa
-    return 0
+    # data = get_test_input_data()[0]
+    free_spaces, blocs = parse_data2(data)
+
+    for bloc_no in sorted(blocs.keys(), reverse=True):
+        _, nb_blocs = blocs[bloc_no]
+        new_space = find_space(nb_blocs, free_spaces)
+        if new_space != -1:
+            blocs, free_spaces = move(bloc_no, new_space, blocs, free_spaces)
+
+    res = 0
+    for pos, v in blocs.items():
+        file_no, nb_blocs = v
+        for i in range(nb_blocs):
+            res += file_no * (pos +i)
+
+    if 6409473350968 >= res or res >= 8633291891221:
+        print("KO")
+    return res
