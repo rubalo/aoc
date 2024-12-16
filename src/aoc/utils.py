@@ -150,8 +150,7 @@ from typing import LiteralString
 from aoc.utils import read_input
 
 def get_input_data():
-    data = read_input(day={day}, year={year})
-    return parse_data(data)
+    return read_input(day={day}, year={year})
 
 
 def parse_data(data: list[str]):
