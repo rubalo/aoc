@@ -43,6 +43,8 @@ class Machine:
         self.prize = parse_prize(pstr)
 
     def lowest_cost(self) -> int:
+        if not can_win(self.button_a, self.button_b, self.prize):
+            return 0
         for nb_a in range(100):
             for nb_b in range(100):
                 if nb_a * self.button_a + nb_b * self.button_b == self.prize:
@@ -55,6 +57,24 @@ class Machine:
 
 def parse_data(data: list[str]):
     return [Machine(data[i], data[i + 1], data[i + 2]) for i in range(0, len(data), 4)]
+
+def gcd(a: int, b: int) -> int:
+    if a == 0:
+        return b
+    return gcd(b % a, a)
+
+
+def has_solution(a: int, b: int, c: int) -> bool:
+    return c % gcd(a, b) == 0
+
+
+def can_win(a: complex, b: complex, prize: complex) -> bool:
+
+    x1, x2 = int(a.real), int(b.real)
+    y1, y2 = int(a.imag), int(b.imag)
+    x, y = int(prize.real), int(prize.imag)
+
+    return has_solution(x1, x2, x) and has_solution(y1, y2, y)
 
 
 def get_test_input_data() -> list[LiteralString]:
