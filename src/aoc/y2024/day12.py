@@ -25,11 +25,10 @@ def parse_data(data: list[str]):
 
 
 def get_test_input_data() -> list[LiteralString]:
-    data = """OOOOO
-OXOXO
-OOOOO
-OXOXO
-OOOOO"""
+    data = """AAAA
+BBCD
+BBCC
+EEEC"""
     data = """RRRRIICCFF
 RRRRIICCCF
 VVRRRCCFFF
@@ -40,10 +39,14 @@ VVIIICJJEE
 MIIIIIJJEE
 MIIISIJEEE
 MMMISSJEEE"""
-    data = """AAAA
-BBCD
-BBCC
-EEEC"""
+    data = """OOOOO
+OXOXO
+OOOOO
+OXOXO
+OOOOO"""
+    data = """000
+0X0
+000"""
     return data.split("\n")
 
 
@@ -61,8 +64,6 @@ class Zone:
         self.plant = plant
         self.top, self.bottom, self.left, self.right = self.borders()
         self.neighbours = {plot: self._get_neighbours(plot)[0] for plot in self.plots}
-        self.boundaries = self._get_boundaries()
-        self.ordered_boundaries()
 
     def borders(self) -> tuple[int, int, int, int]:
         xs = [int(x.real) for x in self.plots]
@@ -99,40 +100,55 @@ class Zone:
 
         return neighbours, not_neighbours
 
-    def _get_boundaries(self) -> list[tuple[complex, complex]]:
-        boundaries = []
+    @property
+    def nb_edges(self):
+        nb_face = 0
+        edges = self.get_edges()
+        while edges:
+            nb_f, walked = self._walk_border(edges)
+            edges = [plot for plot in edges if plot not in walked]
+            nb_face += nb_f
+
+        return nb_face
+
+    def get_edges(self) -> list[tuple[complex, complex]]:
+        edges = []
         for plot in self.plots:
-            _, not_neighbours = self._get_neighbours(plot)
-            for n_plot in not_neighbours:
-                boundaries.append((plot, n_plot))
+            for direction in [UP, DOWN, LEFT, RIGHT]:
+                if plot + direction not in self.neighbours[plot]:
+                    edges.append((plot, direction))  # noqa
 
-        return boundaries
+        return edges
 
-    def ordered_boundaries(self) -> None:
-        boundaries = sorted(self.boundaries.copy(), key=lambda x: (x[0].real, x[0].imag))
-        start_point = boundaries.pop()
-        ordered_boundaries = [start_point]
-        print("*" * 10)
-        print(self)
-        print(boundaries)
-        print(ordered_boundaries)
-        print("*" * 10)
+    def _walk_border(self, edges) -> tuple[int, list[complex]]:
+        start_pos, start_dir = edges[0]
+        pos = start_pos
+        direction = start_dir
+        visited = set()
+        walked = []
+        nb_face = 0
+        while True:
+            #  Try to go RIGHT
+            if pos + direction * -1j in self.neighbours[pos]:
+                pos = pos + direction * -1j
+                if pos + direction in self.neighbours[pos]:
+                    # Angle detected
+                    pos = pos + direction
+                    direction = direction * 1j
+                    visited.add((pos, direction))
+                    nb_face += 1
+            else:
+                # rotate right
+                direction = direction * -1j
+                nb_face += 1
+            walked.append((pos, direction))
+            if pos == start_pos and direction == start_dir:
+                break
 
-
-        self.boundaries = ordered_boundaries
+        return nb_face, walked
 
     def get_nb_faces(self) -> int:
         return 0
-
-
-    def aligned_with_neighbours(self, plot: complex) -> bool:
-        neighbours = self.neighbours[plot]
-        if all([plot.real == n.real for n in neighbours]):
-            return True
-        if all([plot.imag == n.imag for n in neighbours]):
-            return True
-        return False
-
 
     def __str__(self) -> str:
         return f"Plant: {self.plant}, area: {self.area}, perimeter: {self.perimeter}, tl: {self.top, self.left}, br: {self.bottom, self.right}, plots: {self.plots}"
@@ -205,12 +221,11 @@ def part1() -> int:
 
 def part2() -> int:
     data = get_input_data()
-    data = get_test_input_data()
+    # data = get_test_input_data()
     mat = parse_data(data)
     print_map(mat)
     zones = build_zones(mat)
     res = 0
     for zone in zones:
-        print(zone)
-        print(zone.boundaries)
+        res += zone.nb_edges * zone.area
     return res
