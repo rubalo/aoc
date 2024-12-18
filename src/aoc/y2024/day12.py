@@ -25,10 +25,6 @@ def parse_data(data: list[str]):
 
 
 def get_test_input_data() -> list[LiteralString]:
-    data = """AAAA
-BBCD
-BBCC
-EEEC"""
     data = """OOOOO
 OXOXO
 OOOOO
@@ -44,6 +40,10 @@ VVIIICJJEE
 MIIIIIJJEE
 MIIISIJEEE
 MMMISSJEEE"""
+    data = """AAAA
+BBCD
+BBCC
+EEEC"""
     return data.split("\n")
 
 
@@ -54,11 +54,15 @@ class Zone:
     bottom: int
     left: int
     right: int
+    neighbours: dict[complex, list[complex]]
 
     def __init__(self, plant, plots: set):
         self.plots = plots
         self.plant = plant
         self.top, self.bottom, self.left, self.right = self.borders()
+        self.neighbours = {plot: self._get_neighbours(plot)[0] for plot in self.plots}
+        self.boundaries = self._get_boundaries()
+        self.ordered_boundaries()
 
     def borders(self) -> tuple[int, int, int, int]:
         xs = [int(x.real) for x in self.plots]
@@ -77,20 +81,58 @@ class Zone:
     def perimeter(self):
         p_len = 0
         for plot in self.plots:
-            neighbours = self.get_neighbours(plot)
+            neighbours = self.neighbours[plot]
             p_len += MAX_NEIGHBORS - len(neighbours)
 
         return p_len
 
-    def get_neighbours(self, plot: complex) -> list[complex]:
+    def _get_neighbours(self, plot: complex) -> tuple[list[complex], list[complex]]:
         neighbours = []
+        not_neighbours = [plot + UP, plot + DOWN, plot + LEFT, plot + RIGHT]
         for t_plot in self.plots:
             if plot == t_plot:
                 continue
 
             if abs(plot - t_plot) == 1:
                 neighbours.append(t_plot)
-        return neighbours
+                not_neighbours.remove(t_plot)
+
+        return neighbours, not_neighbours
+
+    def _get_boundaries(self) -> list[tuple[complex, complex]]:
+        boundaries = []
+        for plot in self.plots:
+            _, not_neighbours = self._get_neighbours(plot)
+            for n_plot in not_neighbours:
+                boundaries.append((plot, n_plot))
+
+        return boundaries
+
+    def ordered_boundaries(self) -> None:
+        boundaries = sorted(self.boundaries.copy(), key=lambda x: (x[0].real, x[0].imag))
+        start_point = boundaries.pop()
+        ordered_boundaries = [start_point]
+        print("*" * 10)
+        print(self)
+        print(boundaries)
+        print(ordered_boundaries)
+        print("*" * 10)
+
+
+        self.boundaries = ordered_boundaries
+
+    def get_nb_faces(self) -> int:
+        return 0
+
+
+    def aligned_with_neighbours(self, plot: complex) -> bool:
+        neighbours = self.neighbours[plot]
+        if all([plot.real == n.real for n in neighbours]):
+            return True
+        if all([plot.imag == n.imag for n in neighbours]):
+            return True
+        return False
+
 
     def __str__(self) -> str:
         return f"Plant: {self.plant}, area: {self.area}, perimeter: {self.perimeter}, tl: {self.top, self.left}, br: {self.bottom, self.right}, plots: {self.plots}"
@@ -162,5 +204,13 @@ def part1() -> int:
 
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    data = get_input_data()
+    data = get_test_input_data()
+    mat = parse_data(data)
+    print_map(mat)
+    zones = build_zones(mat)
+    res = 0
+    for zone in zones:
+        print(zone)
+        print(zone.boundaries)
+    return res
