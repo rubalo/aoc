@@ -91,7 +91,7 @@ def print_robots(robots: list[Robot]):
         print()  # noqa
 
 
-def count_qadra(robots: list[Robot]) -> int:
+def count_qadra(robots: list[Robot]) -> tuple[int, int, int, int, int]:
     q1 = 0
     q2 = 0
     q3 = 0
@@ -113,8 +113,8 @@ def count_qadra(robots: list[Robot]) -> int:
             elif y > y_limit:
                 q4 += 1
 
-    print(q1, q2, q3, q4)  # noqa
-    return q1 * q2 * q3 * q4
+    # print(q1, q2, q3, q4)
+    return q1 * q2 * q3 * q4, q1, q2, q3, q4
 
 
 def part1() -> int:
@@ -130,9 +130,23 @@ def part1() -> int:
         [x.move() for x in robots]
         print()  # noqa
     print_robots(robots)
-    return count_qadra(robots)
+    return count_qadra(robots)[0]
 
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    data = get_input_data()
+    robots = parse_data(data)
+
+    print_robots(robots)
+    print()  # noqa
+    print()  # noqa
+    cpt = 1
+    while True:
+        [x.move() for x in robots]
+        poss = [x.pos for x in robots]
+        counts = {x: poss.count(x) for x in poss}
+        if all([x == 1 for x in counts.values()]):  # noqa
+            print_robots(robots)
+            print("All robots are alone")  # noqa
+            return cpt
+        cpt += 1
