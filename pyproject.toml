@@ -33,6 +33,7 @@ dependencies = [
   "networkx",
   "numpy",
   "requests",
+  "sympy",
 ]
 
 [project.urls]
