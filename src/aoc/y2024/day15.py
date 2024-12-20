@@ -18,15 +18,35 @@ def get_input_data():
     return read_input(day=15, year=2024)
 
 
-def parse_data(data: list[str]):
+def parse_data(data: list[str], part2: bool = False) -> tuple[np.array, list[complex]]:
     sep = data.index("")
-    mapp = parse_map(data[:sep])
+    if part2:
+        mapp = parse_map2(data[:sep])
+    else:
+        mapp = parse_map(data[:sep])
     moves = parse_moves(data[sep + 1 :])
     return mapp, moves
 
-
 def parse_map(data: list[str]):
     return np.array([np.array(list(x.strip())) for x in data])
+
+def parse_map2(data: list[str]):
+
+    new_lines = []
+    for line in data:
+        new_line = []
+        for char in line.strip():
+            if char == "#":
+                new_line.append("##")
+            elif char == ".":
+                new_line.append("..")
+            elif char == "O":
+                new_line.append("[]")
+            elif char == "@":
+                new_line.append("@.")
+        new_lines.append(np.array(new_line))
+
+    return np.array(new_lines)
 
 
 def parse_moves(data: list[str]):
@@ -159,4 +179,7 @@ def part1() -> int:
 
 def part2() -> int:
     data = get_input_data()  # noqa
+    data = get_test_input_data()
+    mapp, moves = parse_data(data, part2=True)
+    print_map(mapp)
     return 0
