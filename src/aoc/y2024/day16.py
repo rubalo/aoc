@@ -1,16 +1,18 @@
 # Advent of Code 2024 - Day 16
 
 from __future__ import annotations
-from collections import deque
+
 from typing import LiteralString
-from aoc.utils import read_input
 
 import numpy as np
 
-UP = complex(-1,0)
-DOWN = complex(1,0)
-LEFT = complex(0,-1)
+from aoc.utils import read_input
+
+UP = complex(-1, 0)
+DOWN = complex(1, 0)
+LEFT = complex(0, -1)
 RIGHT = complex(0, 1)
+
 
 def get_input_data():
     return read_input(day=16, year=2024)
@@ -18,6 +20,7 @@ def get_input_data():
 
 def parse_data(data: list[str]):
     return np.array([np.array(list(x)) for x in data])
+
 
 def get_test_input_data() -> list[LiteralString]:
     data = """###############
@@ -35,44 +38,48 @@ def get_test_input_data() -> list[LiteralString]:
 #.###.#.#.#.#.#
 #S..#.....#...#
 ###############"""
+    #     data  = """#################
+    # #...#...#...#..E#
+    # #.#.#.#.#.#.#.#.#
+    # #.#.#.#...#...#.#
+    # #.#.#.#.###.#.#.#
+    # #...#.#.#.....#.#
+    # #.#.#.#.#.#####.#
+    # #.#...#.#.#.....#
+    # #.#.#####.#.###.#
+    # #.#.#.......#...#
+    # #.#.###.#####.###
+    # #.#.#...#.....#.#
+    # #.#.#.#####.###.#
+    # #.#.#.........#.#
+    # #.#.#.#########.#
+    # #S#.............#
+    # #################"""
     return data.split("\n")
 
-def print_map(mapp: np.arrray, pos=None, direction=None, visited = None):
 
-    data = mapp.copy()
-    if pos:
-        xp, yp = get_pos(pos)
-        if direction == UP:
-            cursor = "^"
-        if direction == DOWN:
-            cursor = "v"
-        if direction == LEFT:
-            cursor = "<"
-        if direction == RIGHT:
-            cursor = ">"
-
-        data[xp, yp] = cursor
-
-    if visited:
-        for path in visited:
-            xv, yv = get_pos(path)
-            data[xv, yv] = "X"
+def print_map(data: np.arrray, reds=None):
+    if not reds:
+        reds = []
 
     for i in range(len(data)):
         for j in range(len(data[0])):
-                print(data[i,j], end ="")
-        print()
+            if complex(i, j) in reds:
+                print("\033[91m" + data[i, j] + "\033[0m", end="")  # noqa
+            else:
+                print(data[i, j], end="")  # noqa
+        print()  # noqa
 
 
 def find_start_end(mapp: np.array) -> tuple[complex, complex]:
     start, end = None, None
 
     for i, row in enumerate(mapp):
-        try:
+        try:  # noqa
             start = complex(i, list(row).index("S"))
         except ValueError:
             pass
-        try:
+        try:  # noqa
             end = complex(i, list(row).index("E"))
         except ValueError:
             pass
@@ -81,67 +88,87 @@ def find_start_end(mapp: np.array) -> tuple[complex, complex]:
 
     return start, end
 
+
 def get_val(pos: complex, data):
     x, y = get_pos(pos)
     try:
-        return data[x,y] if data[x,y] != "#" else None
+        return data[x, y] if data[x, y] != "#" else None
     except IndexError:
-        breakpoint()
+        return None
+
 
 def get_pos(val: complex):
     return int(val.real), int(val.imag)
 
 
-def get_neighbours(pos, direction, score, data):
+def get_neighbours(cur_pos, cur_dir, data):
     neighbours = []
-    r_dir = direction
 
-    for i in range(4):
-        if get_val(pos + r_dir, data) != None:
-            neighbours.append((pos + r_dir, r_dir, score + (i * 1000) +1))
-        r_dir = r_dir * 1j
+    cur_dir = cur_dir * 1j
+
+    for score in [1, 1001, 2001, 1001]:
+        cur_dir = cur_dir * -1j
+
+        val = get_val(cur_pos + cur_dir, data)
+        if val:
+            neighbours.append((cur_pos + cur_dir, score))
 
     return neighbours
 
 
+def get_path(predecessors, start, end):
+    path = []
+    cur = end
+    while cur != start:
+        path.append(cur)
+        cur = predecessors[cur][0]
+
+    path.append(start)
+    return path[::-1]
 
 
-PREC = {}
-Q = deque()
+def get_all_nodes(data):
+    nodes = []
+    for i in range(len(data)):
+        for j in range(len(data[0])):
+            if data[i, j] != "#":
+                nodes.append(complex(i, j))  # noqa
+    return nodes
 
-def walk():
 
-    pos, direction, score, stop, data = Q.pop()
+def walk(start, end, data):
+    unvisited_nodes = set(get_all_nodes(data))
+    distances = {node: float("inf") for node in unvisited_nodes}
+    predecessors = {}
+    predecessors[start] = start + LEFT
+    distances[start] = 0
 
-    neighbours = get_neighbours(pos, direction, score, data)
+    while unvisited_nodes:
+        cur = min(unvisited_nodes, key=lambda x: distances[x])
+        unvisited_nodes.remove(cur)
+        direction = cur - predecessors[cur]
 
-    for neighbour in neighbours:
-        n_pos, n_dir, n_score = neighbour
-        if not (n_pos, n_dir) in PREC:
-            PREC[(n_pos, n_dir)] = (pos, direction, n_score)
-        elif n_score < PREC[(n_pos, n_dir)][2]:
-            PREC[(n_pos, n_dir)] = (pos, direction, n_score)
+        if cur == end:
+            break
 
-        Q.append((n_pos, n_dir, n_score, stop, data))
+        for neighbour, cost in get_neighbours(cur_pos=cur, cur_dir=direction, data=data):
+            if neighbour not in unvisited_nodes:
+                continue
 
+            if distances[cur] + cost <= distances[neighbour]:
+                distances[neighbour] = distances[cur] + cost
+                predecessors[neighbour] = cur
+
+    return distances[end]
 
 
 def part1() -> int:
-    data = get_input_data()  # noqa
-    data = get_test_input_data()
+    data = get_input_data()
+    # data = get_test_input_data()
     mapp = parse_data(data)
     print_map(mapp)
     start, end = find_start_end(mapp)
-    print(start, end)
-
-    Q.append((start, complex(0,1), 0, end, mapp))
-
-    while len(Q) > 0:
-        walk()
-
-    print(PREC)
-
-    return 0
+    return walk(start, end, mapp)
 
 
 def part2() -> int:
