@@ -121,7 +121,7 @@ def get_path(predecessors, start, end):
     cur = end
     while cur != start:
         path.append(cur)
-        cur = predecessors[cur][0]
+        cur = predecessors[cur]
 
     path.append(start)
     return path[::-1]
@@ -159,8 +159,46 @@ def walk(start, end, data):
                 distances[neighbour] = distances[cur] + cost
                 predecessors[neighbour] = cur
 
-    return distances[end]
+    return distances, predecessors
 
+
+def find_all_nodes_in_optimal_paths(mapp):
+
+    print_map(mapp)
+    start, end = find_start_end(mapp)
+    distances, predecessors = walk(start, end, mapp)
+    optimal_path = get_path(predecessors, start, end)
+    optimal_distance = distances[end]
+    print_map(mapp, optimal_path)
+    paths = [optimal_path]
+    paths.extend(find_optimal_path(start, end, optimal_path, optimal_distance, mapp))
+
+    nodes = set()
+    for path in paths:
+        for node in path:
+            nodes.add(node)
+
+    return nodes
+
+
+def find_optimal_path(start, end, path, optimal_distance, mapp):
+    paths = []
+    for node in path:
+        if node in [start, end]:
+            continue
+        t_mapp = mapp.copy()
+        x, y = get_pos(node)
+        t_mapp[x, y] = "#"
+        try:
+            t_distances, t_predecessors = walk(start, end, t_mapp)
+        except KeyError:
+            continue
+        if t_distances[end] == optimal_distance:
+            new_path = get_path(t_predecessors, start, end)
+            paths.append(new_path)
+            paths.extend(find_optimal_path(start, end, new_path, optimal_distance, t_mapp))
+
+    return paths
 
 def part1() -> int:
     data = get_input_data()
@@ -168,9 +206,15 @@ def part1() -> int:
     mapp = parse_data(data)
     print_map(mapp)
     start, end = find_start_end(mapp)
-    return walk(start, end, mapp)
+    distances, _ = walk(start, end, mapp)
+    return int(distances[end])
 
 
 def part2() -> int:
     data = get_input_data()  # noqa
-    return 0
+    mapp = parse_data(data)
+
+    nodes = find_all_nodes_in_optimal_paths(mapp)
+    print_map(mapp, nodes)
+
+    return len(nodes)
