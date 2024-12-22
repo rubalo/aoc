@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import math
 import re
+from statistics import median
 from typing import LiteralString
 
 from aoc.utils import read_input
+
+MAX_QUEUE_SIZE = 100
 
 
 def get_input_data():
@@ -48,6 +51,11 @@ Register C: 0
 
 Program: 0,1,5,4,3,0
 """
+    data = """Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0"""
     return data.split("\n")
 
 
@@ -94,9 +102,11 @@ def out(operand, _):
 def part1() -> str:
     data = get_input_data()
     registers, program = parse_data(data)
-    print(registers)  # noqa
-    print(program)  # noqa
+    output = run_program(registers, program)
+    return ",".join(map(str, output))
 
+
+def run_program(registers, program) -> str:
     instruction_pointer = 0
 
     output = []
@@ -114,9 +124,6 @@ def part1() -> str:
         elif operand == 7:  # noqa
             print("Invalid operand")  # noqa
             raise ValueError
-
-        print(f"Instruction: {instruction}, Operand: {operand}, Combo: {combo}, Registers: {registers}")  # noqa
-        print(f"Output: {output}")  # noqa
 
         if instruction == 0:
             registers = adv(combo, registers)
@@ -141,10 +148,95 @@ def part1() -> str:
 
         instruction_pointer += 2
 
-    print(registers)  # noqa
-    return str(",".join([str(x) for x in output]))
+    return output
+
+
+def compute_frequency(index, program):
+    item = program[index]
+    last_seen = []
+    cpt = 1
+    factor = 1
+    while len(last_seen) < MAX_QUEUE_SIZE:
+        registers = {"A": cpt, "B": 0, "C": 0}
+        result = run_program(registers, program)
+
+        if len(result) < len(program):
+            cpt = cpt * 2
+            continue
+        if len(result) > len(program):
+            break
+
+        if result[index] == item:
+            last_seen.append(cpt)
+
+        if len(last_seen) < 2 and (cpt / factor) % 10000 == 0:  # noqa
+            factor = factor * 10
+
+        cpt += 1 * factor
+
+    periods = [y - x for x, y in zip(last_seen, last_seen[1:])]
+    # print(f"Index: {index} - Median: {median(periods)} - spread: {max(last_seen) - min(last_seen)} - Max period: {max(periods)} - Min period: {min(periods)} - First seen: {last_seen[0]} - Last seen: {last_seen[-1]}")
+    return (
+        index,
+        median(periods),
+        max(periods),
+        min(periods),
+        max(last_seen) - min(last_seen),
+        last_seen[0],
+        last_seen[-1],
+    )
+
+
+def compute_number_of_match(result, program):
+    return len([i for i, j in zip(result, program) if i == j])
 
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    data = get_input_data()
+    # data = get_test_input_data()
+    _, program = parse_data(data)
+
+    min_value = 0
+    max_value = 0
+    cpt = 1
+    while True:
+        registers = {"A": cpt, "B": 0, "C": 0}
+        result = run_program(registers, program)
+        if len(result) < len(program):
+            min_value = cpt
+        if len(result) > len(program):
+            max_value = cpt
+            break
+        cpt = cpt * 2
+
+    print("Min value: ", min_value)  # noqa
+    print("Max value: ", max_value)  # noqa
+    print("Nb values possible: ", max_value - min_value)  # noqa
+
+    frequencies = [compute_frequency(i, program) for i in range(len(program))]
+
+    cpt = min_value
+    while True:
+        registers = {"A": cpt, "B": 0, "C": 0}
+        result = run_program(registers, program)
+
+        if len(result) < len(program):
+            cpt = cpt * 2
+            continue
+        if len(result) > len(program):
+            raise ValueError
+
+        if result == program:
+            return cpt
+
+        for frequency in sorted(frequencies, key=lambda x: x[3])[::-1]:
+            index, period = frequency[:2]
+
+            if result[index] == program[index]:
+                continue
+
+            if period > 10:  # noqa
+                cpt += period
+                break
+
+        cpt += 1
