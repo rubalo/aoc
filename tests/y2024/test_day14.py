@@ -1,6 +1,7 @@
 # Advent of Code 2024 - Day 14 - Test
 
 from __future__ import annotations
+
 import pytest
 
 from aoc.y2024.day14 import part1, part2
