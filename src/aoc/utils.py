@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import git
+
+if TYPE_CHECKING:
+    import numpy as np
 
 from aoc.aoc import Aoc
 
@@ -256,3 +260,51 @@ def read_input(day: int, year: int) -> list[str]:
 
     with open(day_file) as f:
         return f.readlines()
+
+
+class Colors:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
+def print_board(
+    board: np.array,
+    reds: list[complex] | None = None,
+    greens: list[complex] | None = None,
+    blues: list[complex] | None = None,
+    padding=None,
+) -> None:
+    if not reds:
+        reds = []
+    if not greens:
+        greens = []
+    if not blues:
+        blues = []
+
+    if not padding:
+        padding = len(max(board.flatten(), key=len)) + 1
+
+    for i, row in enumerate(board):
+        for j, _ in enumerate(row):
+            if complex(j, i) in reds:
+                print(Colors.FAIL + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
+            elif complex(j, i) in greens:
+                print(Colors.OKGREEN + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
+            elif complex(j, i) in blues:
+                print(Colors.OKBLUE + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
+            else:
+                print(board[i, j].ljust(padding), end="")  # noqa
+        print()  # noqa
+
+
+UP = complex(0, -1)
+DOWN = complex(0, 1)
+LEFT = complex(-1, 0)
+RIGHT = complex(1, 0)
