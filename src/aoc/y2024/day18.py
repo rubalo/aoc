@@ -115,6 +115,36 @@ def part1() -> int:
     return len(path)
 
 
+# Path working for part 1, no bit_stopper at least before those numbers
+PART1_WORKING_TEST = 12
+PART1_WORKING_REAL = 1024
+
+
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    board_size, data = get_input_data()
+    # board_size, data = get_test_input_data()
+    coordonates = parse_data(data)
+    board = build_board(board_size, coordonates)
+    start_pos, end_pos = complex(0, 0), complex(board_size, board_size)
+
+    cpt = PART1_WORKING_TEST if board_size == TEST_BOARD_SIZE else PART1_WORKING_REAL
+
+    distances, predecessors = get_shortest_path_at_rank(board, start_pos, end_pos, override_rank=cpt)
+    path = get_shortest_path(predecessors, start_pos, end_pos)
+
+    while True:
+        cpt += 1
+
+        # Skip if the bit stopper is not in the path
+        if coordonates[cpt][1] not in path:
+            continue
+        distances, predecessors = get_shortest_path_at_rank(board, start_pos, end_pos, override_rank=cpt)
+        if distances[end_pos] == float("inf"):
+            break
+
+        path = get_shortest_path(predecessors, start_pos, end_pos)
+
+    curent_bit_stopper = coordonates[cpt][1]
+    x, y = int(curent_bit_stopper.real), int(curent_bit_stopper.imag)
+
+    return ",".join([str(x), str(y)])
