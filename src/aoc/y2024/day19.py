@@ -51,7 +51,35 @@ def validate_designs(ranks: dict[int, list[str]], towel: str):
     return False, []
 
 
-def design_is_valid(towel: str, designs: list[str]):
+def validate_designs2(ranks: dict[int, list[str]], towel: str):
+    print(f"Ranks: {ranks}")  # noqa
+    print(f"Towel: {towel}")  # noqa
+    queue = deque()
+    valid_designs = set()
+
+    cache = {}
+    # We cache the results of the validation
+    # For a given rank, if the number of cached results is the same as the number of designs
+    # we can skip the validation and just add the number of designs to the total because we know
+    # already the number of valid designs for that rank
+
+    queue.append((0, []))
+
+    while queue:
+        pos, design = queue.popleft()
+
+        if pos == len(towel):
+            continue
+
+        for i in ranks[pos]:
+            queue.append((pos + len(i), design + [i]))
+
+
+    return len(valid_designs)
+
+
+
+def find_ranks(towel: str, designs: list[str]):
     ranks = {i: [] for i in range(len(towel))}
     for design in designs:
         for i in range(len(towel)):
@@ -59,14 +87,15 @@ def design_is_valid(towel: str, designs: list[str]):
                 ranks[i].append(design)
 
     ranks = {k: sorted(v, key=lambda x: len(x), reverse=True) for k, v in ranks.items()}
-    return validate_designs(ranks, towel)
+    return ranks
 
 
 def reduce_desings_complexity(designs: list[str]):
     res = []
 
     for design in designs:
-        validated, breaks = design_is_valid(design, [x for x in designs if len(x) < len(design)])
+        ranks = find_ranks(design, [x for x in designs if len(x) < len(design)])
+        validated, _ = validate_designs(ranks, design)
         if not validated:
             res.append(design)
 
@@ -84,7 +113,9 @@ def part1() -> int:
 
     res = 0
     for _, towel in enumerate(towels):
-        validated, _ = design_is_valid(towel, designs)
+        ranks = find_ranks(towel, designs)
+        validated, _ = validate_designs(ranks, towel)
+
         if validated:
             res += 1
 
@@ -92,5 +123,26 @@ def part1() -> int:
 
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    res = 0
+    data = get_input_data()
+    # data = get_test_input_data()
+    designs, towels = parse_data(data)
+    designs = sorted(designs, key=lambda x: len(x), reverse=True)
+    print(f"Nb designs {len(designs)}")  # noqa
+    reduce_designs = reduce_desings_complexity(designs)
+    print(f"Nb designs {len(reduce_designs)} after split")  # noqa
+
+    valid_towels = []
+    for _, towel in enumerate(towels):
+        ranks = find_ranks(towel, reduce_designs)
+        validated, _ = validate_designs(ranks, towel)
+        if validated:
+            valid_towels.append(towel)
+
+    for i, towel in enumerate(valid_towels):
+        print(f"Valid towel: {i}/{len(valid_towels)}")  # noqa
+        ranks = find_ranks(towel, designs)
+        nb_designs = validate_designs2(ranks, towel)
+        res += nb_designs
+
+    return res
