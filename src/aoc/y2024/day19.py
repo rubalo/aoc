@@ -54,29 +54,23 @@ def validate_designs(ranks: dict[int, list[str]], towel: str):
 def validate_designs2(ranks: dict[int, list[str]], towel: str):
     print(f"Ranks: {ranks}")  # noqa
     print(f"Towel: {towel}")  # noqa
-    queue = deque()
-    valid_designs = set()
 
-    cache = {}
-    # We cache the results of the validation
-    # For a given rank, if the number of cached results is the same as the number of designs
-    # we can skip the validation and just add the number of designs to the total because we know
-    # already the number of valid designs for that rank
+    nb_solutions = {k: [] for k in range(len(towel))}
+    last_rank_pos = len(towel) - 1
+    for design in ranks[last_rank_pos]:
+        nb_solutions[last_rank_pos].append((1, design))
 
-    queue.append((0, []))
+    for i in range(last_rank_pos - 1, -1, -1):
+        for design in ranks[i]:
+            # Nb solution for the current design is the sum of solutions
+            # for the next ranks
+            next_rank = i + len(design)
+            nb_solutions_next_rank = sum([x[0] for x in nb_solutions[next_rank]]) if next_rank in nb_solutions else 1
+            nb_solutions[i].append((nb_solutions_next_rank, design))
 
-    while queue:
-        pos, design = queue.popleft()
+    print(f"Nb solutions: {nb_solutions}")  # noqa
 
-        if pos == len(towel):
-            continue
-
-        for i in ranks[pos]:
-            queue.append((pos + len(i), design + [i]))
-
-
-    return len(valid_designs)
-
+    return sum([x[0] for x in nb_solutions[0]])
 
 
 def find_ranks(towel: str, designs: list[str]):
@@ -86,8 +80,7 @@ def find_ranks(towel: str, designs: list[str]):
             if design == towel[i : i + len(design)]:
                 ranks[i].append(design)
 
-    ranks = {k: sorted(v, key=lambda x: len(x), reverse=True) for k, v in ranks.items()}
-    return ranks
+    return {k: sorted(v, key=lambda x: len(x), reverse=True) for k, v in ranks.items()}
 
 
 def reduce_desings_complexity(designs: list[str]):
@@ -144,5 +137,5 @@ def part2() -> int:
         ranks = find_ranks(towel, designs)
         nb_designs = validate_designs2(ranks, towel)
         res += nb_designs
-
+    print(designs)  # noqa
     return res
