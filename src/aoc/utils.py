@@ -293,11 +293,11 @@ def print_board(
 
     for i, row in enumerate(board):
         for j, _ in enumerate(row):
-            if complex(j, i) in reds:
+            if complex(i, j) in reds:
                 print(Colors.FAIL + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
-            elif complex(j, i) in greens:
+            elif complex(i, j) in greens:
                 print(Colors.OKGREEN + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
-            elif complex(j, i) in blues:
+            elif complex(i, j) in blues:
                 print(Colors.OKBLUE + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
             else:
                 print(board[i, j].ljust(padding), end="")  # noqa
@@ -308,3 +308,12 @@ UP = complex(0, -1)
 DOWN = complex(0, 1)
 LEFT = complex(-1, 0)
 RIGHT = complex(1, 0)
+
+
+def get_value_at(board: np.array, position: complex) -> str:
+    x, y = get_pos_coord(position)
+    return board[x, y]
+
+
+def get_pos_coord(pos: complex) -> tuple[int, int]:
+    return int(pos.real), int(pos.imag)
