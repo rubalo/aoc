@@ -78,7 +78,7 @@ def walk_track(track: np.array, start: complex, stop: complex):
                 and neighbor not in [x[0] for x in cheatable_walls]
                 and is_cheatable_wall(track, neighbor, direction)
             ):
-                cheatable_walls.append((neighbor, current, direction))
+                cheatable_walls.append((current, current + 2 * direction, 2))
 
     return distances, cheatable_walls
 
@@ -97,8 +97,8 @@ def part1() -> int:
     for i, cheatable_wall in enumerate(cheatable_walls):
         if i % 1000 == 0:
             print(f"Cheatable wall: {i} / {len(cheatable_walls) - 1}")  # noqa
-        _, pos_1, direction = cheatable_wall
-        gain = distances[pos_1 + 2 * direction] - distances[pos_1] - 2
+        ingress, egress, shortcut_len = cheatable_wall
+        gain = distances[egress] - distances[ingress] - shortcut_len
         times_save[gain] = times_save.get(gain, 0) + 1
 
     res = 0
