@@ -279,7 +279,7 @@ def print_board(
     reds: list[complex] | None = None,
     greens: list[complex] | None = None,
     blues: list[complex] | None = None,
-    padding=None,
+    padding=3,
 ) -> None:
     if not reds:
         reds = []
@@ -291,7 +291,14 @@ def print_board(
     if not padding:
         padding = len(max(board.flatten(), key=len)) + 1
 
+    print("  ", end="")
+    for i in range(board.shape[1]):
+        print(f"{i:3d}".ljust(padding), end="")
+
+    print()
+
     for i, row in enumerate(board):
+        print (f"{i:3d}", end=" ")
         for j, _ in enumerate(row):
             if complex(i, j) in reds:
                 print(Colors.FAIL + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
@@ -314,6 +321,18 @@ def get_value_at(board: np.array, position: complex) -> str:
     x, y = get_pos_coord(position)
     return board[x, y]
 
-
 def get_pos_coord(pos: complex) -> tuple[int, int]:
     return int(pos.real), int(pos.imag)
+
+
+def time_it(func):
+    import time
+
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"{func.__name__} took {end - start:.2f} seconds")
+        return result
+
+    return wrapper
