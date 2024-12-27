@@ -279,6 +279,7 @@ def print_board(
     reds: list[complex] | None = None,
     greens: list[complex] | None = None,
     blues: list[complex] | None = None,
+    yellow: list[complex] | None = None,
     padding=3,
 ) -> None:
     if not reds:
@@ -287,27 +288,34 @@ def print_board(
         greens = []
     if not blues:
         blues = []
+    if not yellow:
+        yellow = []
 
     if not padding:
         padding = len(max(board.flatten(), key=len)) + 1
 
-    print("  ", end="")
+    print("  ", end="")  # noqa
     for i in range(board.shape[1]):
-        print(f"{i:3d}".ljust(padding), end="")
+        print(f"{i:{padding}d}".ljust(padding), end="")  # noqa
 
-    print()
+    print()  # noqa
 
     for i, row in enumerate(board):
-        print (f"{i:3d}", end=" ")
+        print(f"{i:{padding}d}", end=" ")  # noqa
         for j, _ in enumerate(row):
+            val = board[i, j]
+            if not isinstance(val, str):
+                val = str(val)
             if complex(i, j) in reds:
-                print(Colors.FAIL + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
+                print(Colors.FAIL + val.ljust(padding) + Colors.ENDC, end="")  # noqa
             elif complex(i, j) in greens:
-                print(Colors.OKGREEN + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
+                print(Colors.OKGREEN + val.ljust(padding) + Colors.ENDC, end="")  # noqa
             elif complex(i, j) in blues:
-                print(Colors.OKBLUE + board[i, j].ljust(padding) + Colors.ENDC, end="")  # noqa
+                print(Colors.OKBLUE + val.ljust(padding) + Colors.ENDC, end="")  # noqa
+            elif complex(i, j) in yellow:
+                print(Colors.WARNING + val.ljust(padding) + Colors.ENDC, end="")  # noqa
             else:
-                print(board[i, j].ljust(padding), end="")  # noqa
+                print(val.ljust(padding), end="")  # noqa
         print()  # noqa
 
 
@@ -319,7 +327,10 @@ RIGHT = complex(1, 0)
 
 def get_value_at(board: np.array, position: complex) -> str:
     x, y = get_pos_coord(position)
-    return board[x, y]
+    if x in range(board.shape[0]) and y in range(board.shape[1]):
+        return board[x, y]
+    raise IndexError
+
 
 def get_pos_coord(pos: complex) -> tuple[int, int]:
     return int(pos.real), int(pos.imag)
@@ -332,7 +343,7 @@ def time_it(func):
         start = time.time()
         result = func(*args, **kwargs)
         end = time.time()
-        print(f"{func.__name__} took {end - start:.2f} seconds")
+        print(f"{func.__name__} took {end - start:.2f} seconds")  # noqa
         return result
 
     return wrapper
