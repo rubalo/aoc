@@ -5,16 +5,14 @@ from __future__ import annotations
 from typing import LiteralString
 
 from aoc.utils import read_input
-
-TEST_SUITE = False
-
+from collections import deque
 
 def get_input_data():
     return read_input(day=21, year=2024)
 
 
 def parse_data(data: list[str]):
-    return [list(x.strip()) for x in data]
+    return [x.strip() for x in data]
 
 
 def get_test_input_data() -> list[LiteralString]:
@@ -101,7 +99,7 @@ def bfs(pad, start, end):
             t_path.append(direction)
             queue.append((neighbor, t_path))
 
-    return paths
+    return ["".join(x) for x in paths]
 
 
 def get_path(keypad):
@@ -111,85 +109,74 @@ def get_path(keypad):
             if k_from == k_to:
                 continue
             t_paths = bfs(keypad, keypad[k_from], keypad[k_to])
-            paths[(k_from, k_to)] = t_paths
+            paths[(k_from, k_to)] = sorted(t_paths, key=lambda x: len(x))
     return paths
 
 
-def get_directional_path(code, paths):
-    combis = paths[("A", code[0])]
-    combis = [[*x, "A"] for x in combis]
-
-    for key_from, key_to in zip(code, code[1:]):
-        n_combis = []
-        t_paths = []
-        t_paths = (
-            [
-                [],
-            ]
-            if key_from == key_to
-            else paths[(key_from, key_to)]
-        )
-        for t_path in t_paths:
-            t_combis = [x + t_path + ["A"] for x in combis]
-            n_combis += t_combis
-        combis = n_combis
-
-    return combis
-
-
-def robot1(code, paths):
-    return get_directional_path(code, paths)
-
-
-def robot2(codes, paths):
-    combis = []
+def get_keypad_combinaison(codes: list[str], shortest_paths: dict):
+    queue = deque()
 
     for code in codes:
-        combis += get_directional_path(code, paths)
+        code = "A" + code
 
-    return combis
+        queue.append(
+            (code, "")
+         )
 
+    result = []
 
-def robot3(code, paths):
-    return robot2(code, paths)
+    while queue:
+        t_code, path = queue.popleft()
 
+        if len(t_code) == 1:
+            result.append(path)
+            continue
 
-def part1() -> int:
-    data = get_input_data()
-    if TEST_SUITE:
+        key_from, key_to = t_code[0], t_code[1]
+        if key_from == key_to:
+            # we press A  a second time since we are already on the key
+            queue.append((t_code[1:], path + "A"))
+            continue
+
+        paths = shortest_paths[(key_from, key_to)]
+        for n_path in paths:
+            queue.append((t_code[1:], path + n_path + "A"))
+
+    return result
+
+def compute_robots(nb_robots, test) -> int:
+
+    data = get_input_data()  # noqa
+    if test:
         data = get_test_input_data()
     codes = parse_data(data)
     digi_paths = get_path(DIGIT_KEYPAD)
     arrow_paths = get_path(ARROW_KEYPAD)
 
-    inputs1 = {}
-    inputs2 = {}
-    inputs3 = {}
+    result = 0
 
     for code in codes:
-        code_str = "".join(code)
-        print("*" * 10)  # noqa
-        print(f"Code: {code_str}")  # noqa
-        inputs1[code_str] = robot1(code, digi_paths)
-        print(f"Code: {code_str} - Robot 1 {len(inputs1[code_str])}")  # noqa
+        print(f"Code: {code}")
+        robot_level_x = get_keypad_combinaison([code], digi_paths)
+        print(f"Robot level 1: {[(x, len(x)) for x in robot_level_x]}")
+        for lvl in range(nb_robots):
+            robot_level_x1 = get_keypad_combinaison(robot_level_x, arrow_paths)
+            robot_level_x = robot_level_x1
 
-        inputs2[code_str] = robot2(inputs1[code_str], arrow_paths)
-        print(f"Code: {code_str} - Robot 2 {len(inputs2[code_str])}")  # noqa
+        final_paths = sorted(robot_level_x, key=lambda x: len(x))[0]
+        print(f"Final robot level {nb_robots}: {final_paths}, {len(final_paths)}")
 
-        inputs3[code_str] = robot3(inputs2[code_str], arrow_paths)
-        print(f"Code: {code_str} - Robot 3 {len(inputs3[code_str])}")  # noqa
-
-    res = 0
-    for code in codes:
         code_str = "".join(code)
         num1 = int(code_str.split("A")[0])
-        num2 = min([len(x) for x in inputs3[code_str]])
-        print(f"Code: {code_str} - {num2} - {num1}")  # noqa
-        res += num1 * num2
+        num2 = len(final_paths)
+        result += num1 * num2
 
-    return res
 
+    return result
+
+def part1() -> int:
+    return compute_robots(2, test=False)
 
 def part2() -> int:
-    data = get_input_data()  # noqa
-    return 0
+    return compute_robots(3, test=True)
+
