@@ -138,11 +138,73 @@ def get_keypad_combinaison(codes: list[str], shortest_paths: dict):
             queue.append((t_code[1:], path + "A"))
             continue
 
-        paths = shortest_paths[(key_from, key_to)]
-        for n_path in paths:
-            queue.append((t_code[1:], path + n_path + "A"))
+        n_path = shortest_paths[(key_from, key_to)][0]
+        queue.append((t_code[1:], path + n_path + "A"))
 
     return result
+
+def get_path_score(path):
+    score_path = ""
+    for p in path:
+        if p == "<":
+            score_path += "1"
+        elif p == "v":
+            score_path += "2"
+        elif p == "^":
+            score_path += "3"
+        elif p == ">":
+            score_path += "4"
+    return score_path
+
+
+def compute_max_consecutive_moves(path):
+    consecutive_moves = 0
+    counter = 1
+    car = path[0]
+
+    for c in path[1:]:
+        if c == car:
+            counter += 1
+        else:
+            consecutive_moves += counter*counter
+            counter = 1
+            car = c
+    consecutive_moves += counter*counter
+
+    return consecutive_moves
+
+def shortest_paths(paths):
+    if len(paths) == 1:
+        return paths
+
+    # Optimal order is <, v, ^, >
+
+    path_scores = []
+    for path in paths:
+        # Count the max number of consecutive moves in the same direction
+        # This is the score of the path
+        path_score = compute_max_consecutive_moves(path)
+        path_scores.append((path, path_score))
+
+    best_score = max(path_scores, key=lambda x: x[1])
+    paths = [x[0] for x in path_scores if x[1] == best_score[1]]
+
+    best_path = ""
+    best_path_score = float("inf")
+    for path in paths:
+        path_score = int(get_path_score(path))
+        if path_score < best_path_score:
+            best_path = path
+            best_path_score = path_score
+
+    return [best_path]
+
+
+def filter_paths(paths):
+
+    for k, v in paths.items():
+        paths[k] = shortest_paths(v)
+    return paths
 
 def compute_robots(nb_robots, test) -> int:
 
@@ -152,6 +214,9 @@ def compute_robots(nb_robots, test) -> int:
     codes = parse_data(data)
     digi_paths = get_path(DIGIT_KEYPAD)
     arrow_paths = get_path(ARROW_KEYPAD)
+
+    digi_paths = filter_paths(digi_paths)
+    arrow_paths = filter_paths(arrow_paths)
 
     result = 0
 
@@ -178,5 +243,5 @@ def part1() -> int:
     return compute_robots(2, test=False)
 
 def part2() -> int:
-    return compute_robots(3, test=True)
+    return compute_robots(20, test=True)
 
