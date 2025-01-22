@@ -112,99 +112,34 @@ def get_path(keypad):
             paths[(k_from, k_to)] = sorted(t_paths, key=lambda x: len(x))
     return paths
 
-
-def get_keypad_combinaison(codes: list[str], shortest_paths: dict):
-    queue = deque()
-
-    for code in codes:
-        code = "A" + code
-
-        queue.append(
-            (code, "")
-         )
-
-    result = []
-
-    while queue:
-        t_code, path = queue.popleft()
-
-        if len(t_code) == 1:
-            result.append(path)
-            continue
-
-        key_from, key_to = t_code[0], t_code[1]
-        if key_from == key_to:
-            # we press A  a second time since we are already on the key
-            queue.append((t_code[1:], path + "A"))
-            continue
-
-        n_path = shortest_paths[(key_from, key_to)][0]
-        queue.append((t_code[1:], path + n_path + "A"))
-
-    return result
-
-def get_path_score(path):
-    score_path = ""
-    for p in path:
-        if p == "<":
-            score_path += "1"
-        elif p == "v":
-            score_path += "2"
-        elif p == "^":
-            score_path += "3"
-        elif p == ">":
-            score_path += "4"
-    return score_path
+DIGI_PATH = get_path(DIGIT_KEYPAD)
+ARROW_PATH = get_path(ARROW_KEYPAD)
 
 
-def compute_max_consecutive_moves(path):
-    consecutive_moves = 0
-    counter = 1
-    car = path[0]
+def enter_code(code, keypad, lvl):
 
-    for c in path[1:]:
-        if c == car:
-            counter += 1
-        else:
-            consecutive_moves += counter*counter
-            counter = 1
-            car = c
-    consecutive_moves += counter*counter
+    print(f"Code: {code}, lvl: {lvl}")
 
-    return consecutive_moves
+    if lvl == 0:
+        return code + "A"
 
-def shortest_paths(paths):
-    if len(paths) == 1:
-        return paths
+    code = "A" + code
+    code_lvl = ""
 
-    # Optimal order is <, v, ^, >
+    for fk, tk in zip(code, code[1:]):
 
-    path_scores = []
-    for path in paths:
-        # Count the max number of consecutive moves in the same direction
-        # This is the score of the path
-        path_score = compute_max_consecutive_moves(path)
-        path_scores.append((path, path_score))
+        path = keypad[(fk, tk)]
+        n_codes = ["".join(x) for x in path]
 
-    best_score = max(path_scores, key=lambda x: x[1])
-    paths = [x[0] for x in path_scores if x[1] == best_score[1]]
+        codes = [ enter_code(x, keypad, lvl - 1) for x in n_codes]
 
-    best_path = ""
-    best_path_score = float("inf")
-    for path in paths:
-        path_score = int(get_path_score(path))
-        if path_score < best_path_score:
-            best_path = path
-            best_path_score = path_score
+        min_code = min(codes, key=lambda x: len(x))
 
-    return [best_path]
+        code_lvl += min_code
+
+    return code_lvl
 
 
-def filter_paths(paths):
-
-    for k, v in paths.items():
-        paths[k] = shortest_paths(v)
-    return paths
 
 def compute_robots(nb_robots, test) -> int:
 
@@ -212,36 +147,29 @@ def compute_robots(nb_robots, test) -> int:
     if test:
         data = get_test_input_data()
     codes = parse_data(data)
-    digi_paths = get_path(DIGIT_KEYPAD)
-    arrow_paths = get_path(ARROW_KEYPAD)
 
-    digi_paths = filter_paths(digi_paths)
-    arrow_paths = filter_paths(arrow_paths)
+    # Merge DIGI_PATH and ARROW_PATH
+    PATHS = {}
+    for k in DIGI_PATH:
+        PATHS[k] = DIGI_PATH[k]
+    for k in ARROW_PATH:
+        PATHS[k] = ARROW_PATH[k]
+    for k in DIGIT_KEYPAD:
+        PATHS[(k, k)] = ["A"]
+    for k in ARROW_KEYPAD:
+        PATHS[(k, k)] = ["A"]
+
+    codes = [codes[0]]
+    for code in codes:
+        result = enter_code(code, PATHS, nb_robots)
+        print(f"Code: {code} -> {result}, len: {len(result)}")
 
     result = 0
-
-    for code in codes:
-        print(f"Code: {code}")
-        robot_level_x = get_keypad_combinaison([code], digi_paths)
-        print(f"Robot level 1: {[(x, len(x)) for x in robot_level_x]}")
-        for lvl in range(nb_robots):
-            robot_level_x1 = get_keypad_combinaison(robot_level_x, arrow_paths)
-            robot_level_x = robot_level_x1
-
-        final_paths = sorted(robot_level_x, key=lambda x: len(x))[0]
-        print(f"Final robot level {nb_robots}: {final_paths}, {len(final_paths)}")
-
-        code_str = "".join(code)
-        num1 = int(code_str.split("A")[0])
-        num2 = len(final_paths)
-        result += num1 * num2
-
-
     return result
 
 def part1() -> int:
-    return compute_robots(2, test=False)
+    return compute_robots(2, test=True)
 
 def part2() -> int:
-    return compute_robots(20, test=True)
+    return compute_robots(0, test=True)
 
