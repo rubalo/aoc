@@ -70,7 +70,9 @@ def part1() -> int:
     return res
 
 
-def parse_data2(data: list[str]) -> tuple[dict[int, list[int]], dict[int, tuple[int, int]]]:
+def parse_data2(
+    data: list[str],
+) -> tuple[dict[int, list[int]], dict[int, tuple[int, int]]]:
     file_no = 0
     blocs = {}
     free_spaces = defaultdict(list)
@@ -97,7 +99,12 @@ def find_space(nb_blocs: int, free_spaces: dict[int, list[int]]) -> int:
     return free_spaces_number[0][0]
 
 
-def move(bloc_no: int, new_space: int, blocs: dict[tuple[int, int]], free_spaces: dict[int, list[int]]):
+def move(
+    bloc_no: int,
+    new_space: int,
+    blocs: dict[tuple[int, int]],
+    free_spaces: dict[int, list[int]],
+):
     new_pos = free_spaces[new_space].pop(0)
 
     if new_pos > bloc_no:

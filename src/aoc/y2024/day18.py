@@ -53,7 +53,12 @@ def get_test_input_data():
 
 
 def build_board(board_size, coordonates):
-    board = np.array([np.array(["." for _ in range(board_size + 1)], dtype=object) for _ in range(board_size + 1)])
+    board = np.array(
+        [
+            np.array(["." for _ in range(board_size + 1)], dtype=object)
+            for _ in range(board_size + 1)
+        ]
+    )
 
     for i, coord in coordonates:
         board[int(coord.imag), int(coord.real)] = str(i)
@@ -62,7 +67,9 @@ def build_board(board_size, coordonates):
 
 
 def get_shortest_path_at_rank(board, start_pos, end_pos, override_rank=None) -> tuple:
-    unvisited = {complex(x, y) for x in range(board.shape[0]) for y in range(board.shape[1])}
+    unvisited = {
+        complex(x, y) for x in range(board.shape[0]) for y in range(board.shape[1])
+    }
     distances = {k: float("inf") for k in unvisited}
     distances[start_pos] = 0
     predecessors = {}
@@ -74,7 +81,9 @@ def get_shortest_path_at_rank(board, start_pos, end_pos, override_rank=None) -> 
         if current == end_pos:
             break
 
-        current_rank = override_rank if override_rank is not None else distances[current]
+        current_rank = (
+            override_rank if override_rank is not None else distances[current]
+        )
 
         for neighbor in [current + UP, current + DOWN, current + LEFT, current + RIGHT]:
             if neighbor not in unvisited:
@@ -110,7 +119,9 @@ def part1() -> int:
     coordonates = parse_data(data)
     board = build_board(board_size, coordonates)
     start_pos, end_pos = complex(0, 0), complex(board_size, board_size)
-    distances, predecessors = get_shortest_path_at_rank(board, start_pos, end_pos, override_rank=1023)
+    distances, predecessors = get_shortest_path_at_rank(
+        board, start_pos, end_pos, override_rank=1023
+    )
     path = get_shortest_path(predecessors, start_pos, end_pos)
     return len(path)
 
@@ -129,7 +140,9 @@ def part2() -> int:
 
     cpt = PART1_WORKING_TEST if board_size == TEST_BOARD_SIZE else PART1_WORKING_REAL
 
-    distances, predecessors = get_shortest_path_at_rank(board, start_pos, end_pos, override_rank=cpt)
+    distances, predecessors = get_shortest_path_at_rank(
+        board, start_pos, end_pos, override_rank=cpt
+    )
     path = get_shortest_path(predecessors, start_pos, end_pos)
 
     while True:
@@ -138,7 +151,9 @@ def part2() -> int:
         # Skip if the bit stopper is not in the path
         if coordonates[cpt][1] not in path:
             continue
-        distances, predecessors = get_shortest_path_at_rank(board, start_pos, end_pos, override_rank=cpt)
+        distances, predecessors = get_shortest_path_at_rank(
+            board, start_pos, end_pos, override_rank=cpt
+        )
         if distances[end_pos] == float("inf"):
             break
 

@@ -65,7 +65,11 @@ def validate_designs2(ranks: dict[int, list[str]], towel: str):
             # Nb solution for the current design is the sum of solutions
             # for the next ranks
             next_rank = i + len(design)
-            nb_solutions_next_rank = sum([x[0] for x in nb_solutions[next_rank]]) if next_rank in nb_solutions else 1
+            nb_solutions_next_rank = (
+                sum([x[0] for x in nb_solutions[next_rank]])
+                if next_rank in nb_solutions
+                else 1
+            )
             nb_solutions[i].append((nb_solutions_next_rank, design))
 
     print(f"Nb solutions: {nb_solutions}")  # noqa

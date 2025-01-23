@@ -7,7 +7,16 @@ from typing import LiteralString
 
 import numpy as np
 
-from aoc.utils import DOWN, LEFT, RIGHT, UP, get_pos_coord, get_value_at, read_input, time_it
+from aoc.utils import (
+    DOWN,
+    LEFT,
+    RIGHT,
+    UP,
+    get_pos_coord,
+    get_value_at,
+    read_input,
+    time_it,
+)
 
 MIN_PICO_GAIN = 100
 
@@ -61,7 +70,12 @@ def is_cheatable_wall(track: np.array, position: complex, direction: complex) ->
 
 @time_it
 def short_path(track: np.array, start: complex, stop: complex):
-    unvisited = {complex(x, y) for x in range(track.shape[0]) for y in range(track.shape[1]) if track[x, y] != "#"}
+    unvisited = {
+        complex(x, y)
+        for x in range(track.shape[0])
+        for y in range(track.shape[1])
+        if track[x, y] != "#"
+    }
     distances = {k: float("inf") for k in unvisited}
     distances[start] = 0
 
@@ -80,13 +94,17 @@ def short_path(track: np.array, start: complex, stop: complex):
     return distances
 
 
-def get_path(distances: dict[complex, int | float], start: complex, stop: complex) -> list[complex]:
+def get_path(
+    distances: dict[complex, int | float], start: complex, stop: complex
+) -> list[complex]:
     path = []
     current = stop
     while current != start:
         path.append(current)
         neighbors = [current + direction for direction in [1, -1, 1j, -1j]]
-        current = min(neighbors, key=lambda x: distances[x] if x in distances else float("inf"))
+        current = min(
+            neighbors, key=lambda x: distances[x] if x in distances else float("inf")
+        )
     path.append(start)
     return path[::-1]
 
@@ -106,7 +124,9 @@ def filter_shortcuts(raw_path, shortcuts, distances, wall_distances, symbol_pos)
                 e_wall_name = symbol_pos.index(e_wall)
 
                 old_distance = distances[end_pos]
-                new_distance = distances[start_pos] + wall_distances[i_wall_name, e_wall_name] + 2
+                new_distance = (
+                    distances[start_pos] + wall_distances[i_wall_name, e_wall_name] + 2
+                )
                 savings = old_distance - new_distance
 
                 if savings > 0:
@@ -117,10 +137,20 @@ def filter_shortcuts(raw_path, shortcuts, distances, wall_distances, symbol_pos)
 
 def adj_matrix(track: np.array, symbols) -> np.array:
     # Create a matrix of the same size as the track with inf everywhere
-    symbol_set = {complex(x, y) for x in range(track.shape[0]) for y in range(track.shape[1]) if track[x, y] in symbols}
+    symbol_set = {
+        complex(x, y)
+        for x in range(track.shape[0])
+        for y in range(track.shape[1])
+        if track[x, y] in symbols
+    }
     symbol_poss = list(symbol_set)
 
-    adj_matrix = np.array([np.array([float("inf") for _ in range(len(symbol_poss))]) for _ in range(len(symbol_poss))])
+    adj_matrix = np.array(
+        [
+            np.array([float("inf") for _ in range(len(symbol_poss))])
+            for _ in range(len(symbol_poss))
+        ]
+    )
     for pos in symbol_poss:
         for direction in [1, 1j, -1, -1j]:
             with suppress(IndexError):
@@ -157,7 +187,9 @@ def get_adjacent_walls(track, pos):
 def find_shortcuts(pos, c_wall, wall_distances, symbol_pos, shortcut_len):
     wall_name = symbol_pos.index(c_wall)
     distances_from_wall = wall_distances[wall_name]
-    egress_names = [i for i, x in enumerate(distances_from_wall) if x < shortcut_len - 1]
+    egress_names = [
+        i for i, x in enumerate(distances_from_wall) if x < shortcut_len - 1
+    ]
     egress_nodes = [symbol_pos[x] for x in egress_names]
 
     return [(pos, c_wall, egress_node) for egress_node in egress_nodes]

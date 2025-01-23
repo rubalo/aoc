@@ -130,7 +130,9 @@ def enter_code(code, keypad, lvl):
     l_path = 0
     for kf, kt in zip(code, code[1:]):
         sub_paths = keypad[(kf, kt)]
-        sub_paths_sub_lvl = [enter_code("A" + x + "A", keypad, lvl - 1) for x in sub_paths]
+        sub_paths_sub_lvl = [
+            enter_code("A" + x + "A", keypad, lvl - 1) for x in sub_paths
+        ]
         min_sub_path = min(sub_paths_sub_lvl)
         l_path += min_sub_path
 

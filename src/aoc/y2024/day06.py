@@ -67,7 +67,9 @@ def find_guard(data: np.array) -> tuple[complex, D] | None:
     return None
 
 
-def get_guard_path(g_s_pos: complex, d: D, data: np.array, mark: str = "X") -> list[tuple[complex, D]]:
+def get_guard_path(
+    g_s_pos: complex, d: D, data: np.array, mark: str = "X"
+) -> list[tuple[complex, D]]:
     g_pos = g_s_pos
 
     guard_path = [

@@ -112,7 +112,10 @@ def run_program(registers, program) -> str:
     output = []
 
     while instruction_pointer < len(program):
-        instruction, operand = program[instruction_pointer], program[instruction_pointer + 1]
+        instruction, operand = (
+            program[instruction_pointer],
+            program[instruction_pointer + 1],
+        )
 
         combo = operand
         if operand == 4:  # noqa

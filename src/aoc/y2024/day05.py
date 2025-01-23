@@ -70,7 +70,9 @@ def parse_constraints(constraints: list[tuple[int, int]]):
 
 
 def check_successors(page: int, successors: list[int]) -> bool:
-    return all(page not in PREDS or successor not in PREDS[page] for successor in successors)
+    return all(
+        page not in PREDS or successor not in PREDS[page] for successor in successors
+    )
 
 
 def part1() -> int:

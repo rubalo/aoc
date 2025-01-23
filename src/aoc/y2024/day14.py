@@ -85,7 +85,7 @@ def print_robots(robots: list[Robot]):
     for i in range(TALL):
         for j in range(WIDE):
             if complex(j, i) in counts:
-                print(f"{counts[complex(j,i)]}", end="")  # noqa
+                print(f"{counts[complex(j, i)]}", end="")  # noqa
             else:
                 print(".", end="")  # noqa
         print()  # noqa
