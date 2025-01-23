@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import LiteralString
 
 from aoc.utils import read_input
-from collections import deque
+
 
 def get_input_data():
     return read_input(day=21, year=2024)
@@ -112,64 +112,65 @@ def get_path(keypad):
             paths[(k_from, k_to)] = sorted(t_paths, key=lambda x: len(x))
     return paths
 
+
 DIGI_PATH = get_path(DIGIT_KEYPAD)
 ARROW_PATH = get_path(ARROW_KEYPAD)
 
+CACHE = {}
+
 
 def enter_code(code, keypad, lvl):
-
-    print(f"Code: {code}, lvl: {lvl}")
+    if (code, lvl) in CACHE:
+        return CACHE[(code, lvl)]
 
     if lvl == 0:
-        return code + "A"
+        code = code[1:]
+        return len(code)
 
-    code = "A" + code
-    code_lvl = ""
+    l_path = 0
+    for kf, kt in zip(code, code[1:]):
+        sub_paths = keypad[(kf, kt)]
+        sub_paths_sub_lvl = [enter_code("A" + x + "A", keypad, lvl - 1) for x in sub_paths]
+        min_sub_path = min(sub_paths_sub_lvl)
+        l_path += min_sub_path
 
-    for fk, tk in zip(code, code[1:]):
+    CACHE[(code, lvl)] = l_path
 
-        path = keypad[(fk, tk)]
-        n_codes = ["".join(x) for x in path]
-
-        codes = [ enter_code(x, keypad, lvl - 1) for x in n_codes]
-
-        min_code = min(codes, key=lambda x: len(x))
-
-        code_lvl += min_code
-
-    return code_lvl
-
+    return l_path
 
 
 def compute_robots(nb_robots, test) -> int:
-
-    data = get_input_data()  # noqa
+    data = get_input_data()
     if test:
         data = get_test_input_data()
     codes = parse_data(data)
 
     # Merge DIGI_PATH and ARROW_PATH
-    PATHS = {}
+    paths = {}
     for k in DIGI_PATH:
-        PATHS[k] = DIGI_PATH[k]
+        paths[k] = DIGI_PATH[k]
     for k in ARROW_PATH:
-        PATHS[k] = ARROW_PATH[k]
+        paths[k] = ARROW_PATH[k]
     for k in DIGIT_KEYPAD:
-        PATHS[(k, k)] = ["A"]
+        paths[(k, k)] = [""]
     for k in ARROW_KEYPAD:
-        PATHS[(k, k)] = ["A"]
+        paths[(k, k)] = [""]
 
-    codes = [codes[0]]
+    final_r = 0
     for code in codes:
-        result = enter_code(code, PATHS, nb_robots)
-        print(f"Code: {code} -> {result}, len: {len(result)}")
+        result = enter_code("A" + code, paths, nb_robots)
+        print(f"Code: {code} ,len: {result}")  # noqa
+        num1 = int(code.split("A")[0])
+        num2 = result
 
-    result = 0
-    return result
+        final_r += num1 * num2
+
+    return final_r
+
 
 def part1() -> int:
-    return compute_robots(2, test=True)
+    return compute_robots(3, test=False)
+
 
 def part2() -> int:
-    return compute_robots(0, test=True)
-
+    return compute_robots(26, test=False)
