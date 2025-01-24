@@ -16,7 +16,7 @@ def parse_data(data: list[str]):
 
 
 def get_test_input_data() -> list[LiteralString]:
-    data = """1
+    data = """123
 10
 100
 2024"""
@@ -77,4 +77,31 @@ def part1() -> int:
 
 def part2() -> int:
     data = get_input_data()  # noqa
-    return 0
+    data = get_test_input_data()
+    snss = parse_data(data)
+
+    res = 0
+    a_codes = []
+    n_codes = []
+
+    for sn in snss:
+        nsn = sn
+        codes = [int(str(nsn)[-1])]
+        f_codes = [nsn]
+        for _ in range(2000):
+            nsn = get_next_sn(nsn)
+            codes.append(int(str(nsn)[-1]))
+            f_codes.append(nsn)
+
+        n_codes.append(codes)
+        a_codes.append(f_codes)
+
+    d_codes = []
+    for codes in n_codes:
+        d_codes.append([y - x for x, y in zip(codes, codes[1:])])
+
+    print(a_codes[0][:10])
+    print(n_codes[0][:10])
+    print(d_codes[0][:10])
+
+    return res
