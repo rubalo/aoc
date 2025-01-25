@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -42,8 +42,8 @@ Source = "https://github.com/rubalo/aoc"
 [project.scripts]
 aoc = "aoc.cli:aoc"
 
-[tool.hatch.version]
-path = "src/aoc/__about__.py"
+[tool.setuptools_scm]
+version_file = "src/aoc/__about__.py"
 
 [tool.coverage.run]
 source_pkgs = ["aoc", "tests"]
@@ -69,6 +69,7 @@ dev = [
     "ipdb>=0.13.13",
     "pre-commit>=4.1.0",
     "pytest>=8.3.4",
+    "setuptools-scm>=8.1.0",
 ]
 
 [tool.isort]
