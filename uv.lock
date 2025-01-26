@@ -3,7 +3,7 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "aoc"
-version = "0.0.1.dev0+g1ed26ec.d20250125"
+version = "0.0.1.dev4+g5988418.d20250126"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
