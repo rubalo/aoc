@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import LiteralString
+from collections import defaultdict
+from typing import Iterable, LiteralString
 
 from aoc.utils import read_input
 
@@ -16,9 +17,9 @@ def parse_data(data: list[str]):
 
 
 def get_test_input_data() -> list[LiteralString]:
-    data = """123
-10
-100
+    data = """1
+2
+3
 2024"""
     return data.split("\n")
 
@@ -75,33 +76,68 @@ def part1() -> int:
     return res
 
 
+def walk(codes: list[int]) -> Iterable[tuple[int, int, int, int, int]]:
+    for i in range(len(codes) - 3):
+        yield codes[i], codes[i + 1], codes[i + 2], codes[i + 3], i + 3
+
+
+def find_max_bananas(
+    prices: dict[int, list[int]], changes: dict[int, list[int]]
+) -> int:
+    seqs = {}
+    visited = defaultdict(list)
+    for buyer in range(len(prices)):
+        print(f"buyer: {buyer}, prices: {prices[buyer][:10]}")
+
+        for x in walk(changes[buyer]):
+            seq = x[:-1]
+            index = x[-1]
+            if seq not in seqs:
+                # if seq == (-2, 1, -1, 3) or seq ==  (-2, 2, -1, -1):
+                #     print(f"NEW seq: {seq}, index: {index} found for buyer: {buyer} : {prices[buyer][index + 1]}")
+                seqs[seq] = prices[buyer][index + 1]
+                visited[seq].append(buyer)
+            if buyer not in visited[seq]:
+                # if seq == (-2, 1, -1, 3) or seq ==  (-2, 2, -1, -1):
+                #     print(f"ADDED seq: {seq}, index: {index} found for buyer: {buyer} : {prices[buyer][index + 1]}, seqs[seq]: {seqs[seq]}")
+                seqs[seq] += prices[buyer][index + 1]
+                visited[seq].append(buyer)
+
+    max_bananas = max(seqs, key=lambda x: seqs[x])
+    res = seqs[max_bananas]
+    print(f"max_bananas_seq: {max_bananas}")
+    print(f"max_bananas: {res}")
+
+    return res
+
+
 def part2() -> int:
     data = get_input_data()  # noqa
-    data = get_test_input_data()
+    # data = get_test_input_data()
     snss = parse_data(data)
 
-    res = 0
-    a_codes = []
-    n_codes = []
+    secret_codes = defaultdict(list)
+    prices = defaultdict(list)
 
-    for sn in snss:
+    for buyer, sn in enumerate(snss):
         nsn = sn
-        codes = [int(str(nsn)[-1])]
-        f_codes = [nsn]
-        for _ in range(2000):
+        for _ in range(2001):
+            secret_codes[buyer].append(nsn)
+            prices[buyer].append(int(str(nsn)[-1]))
             nsn = get_next_sn(nsn)
-            codes.append(int(str(nsn)[-1]))
-            f_codes.append(nsn)
 
-        n_codes.append(codes)
-        a_codes.append(f_codes)
+    changes = defaultdict(list)
 
-    d_codes = []
-    for codes in n_codes:
-        d_codes.append([y - x for x, y in zip(codes, codes[1:])])
+    for buyer in range(len(prices)):
+        changes[buyer] = [y - x for x, y in zip(prices[buyer], prices[buyer][1:])]
 
-    print(a_codes[0][:10])
-    print(n_codes[0][:10])
-    print(d_codes[0][:10])
+    print(f"secret_codes for buyer 0: {secret_codes[0][:10]}")
+    print(f"prices for buyer 0: {prices[0][:10]}")
+    print(f"changes for buyer 0: {changes[0][:10]}")
+
+    res = find_max_bananas(prices, changes)
+
+    if res >= 2528:
+        raise ValueError(f"res: {res} to high")
 
     return res
