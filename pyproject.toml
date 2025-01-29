@@ -74,3 +74,6 @@ dev = [
 
 [tool.isort]
 profile = "black"
+
+[tool.uv]
+reinstall-package = ["aoc"]

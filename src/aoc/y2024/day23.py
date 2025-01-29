@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from typing import LiteralString
 
 from aoc.utils import read_input
@@ -74,24 +74,23 @@ def find_interconnected_networks(neighbors):
 
     return networks
 
+
 def find_max_interconnected_networks(neighbors):
 
-    max_networks_per_node = {}
+    networks = [
+        [
+            x,
+        ]
+        for x in neighbors.keys()
+    ]
 
     for node in neighbors:
-        max_networks_per_node[node] = set(neighbors.keys().copy())
+        for network in networks:
+            if all([node in neighbors[neighbor] for neighbor in network]):
+                network.append(node)
 
+    return networks
 
-    for node in neighbors:
-        t_max_neighbors = max_networks_per_node[node].copy()
-        l_max_neighbors = len(t_max_neighbors)
-        for i in range(l_max_neighbors):
-            for j in range(i+1, l_max_neighbors):
-                if j not in neighbors[i]:
-                    if j in max_networks_per_node[node]:
-                        max_networks_per_node[node].remove(j)
-
-    return max_networks_per_node
 
 def find_chef_historian(networks):
     chef_historian_networks = []
@@ -132,13 +131,12 @@ def part1() -> int:
 
 def part2() -> int:
     data = get_input_data()  # noqa
-    data = get_test_input_data()
+    # data = get_test_input_data()
     computer_connections = parse_data(data)
     neighbors = find_computer_neighbors(computer_connections)
 
     n_max_networks = find_max_interconnected_networks(neighbors)
+    max_network = max(n_max_networks, key=len)
+    print(max_network)
 
-    for network in n_max_networks:
-        print(network)
-
-    return 0
+    return ",".join(sorted(max_network))
