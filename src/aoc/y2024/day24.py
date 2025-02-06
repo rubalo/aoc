@@ -31,53 +31,25 @@ def parse_data(data: list[str]):
 
 
 def get_test_input_data() -> list[LiteralString]:
-    data = """x00: 1
-x01: 0
-x02: 1
+    data = """x00: 0
+x01: 1
+x02: 0
 x03: 1
 x04: 0
-y00: 1
-y01: 1
+x05: 1
+y00: 0
+y01: 0
 y02: 1
 y03: 1
-y04: 1
+y04: 0
+y05: 1
 
-ntg XOR fgs -> mjb
-y02 OR x01 -> tnw
-kwq OR kpj -> z05
-x00 OR x03 -> fst
-tgd XOR rvg -> z01
-vdt OR tnw -> bfw
-bfw AND frj -> z10
-ffh OR nrd -> bqk
-y00 AND y03 -> djm
-y03 OR y00 -> psh
-bqk OR frj -> z08
-tnw OR fst -> frj
-gnj AND tgd -> z11
-bfw XOR mjb -> z00
-x03 OR x00 -> vdt
-gnj AND wpb -> z02
-x04 AND y00 -> kjc
-djm OR pbm -> qhw
-nrd AND vdt -> hwm
-kjc AND fst -> rvg
-y04 OR y02 -> fgs
-y01 AND x02 -> pbm
-ntg OR kjc -> kwq
-psh XOR fgs -> tgd
-qhw XOR tgd -> z09
-pbm OR djm -> kpj
-x03 XOR y03 -> ffh
-x00 XOR y04 -> ntg
-bfw OR bqk -> z06
-nrd XOR fgs -> wpb
-frj XOR qhw -> z04
-bqk OR frj -> z07
-y03 OR x01 -> nrd
-hwm AND bqk -> z03
-tgd XOR rvg -> z12
-tnw OR pbm -> gnj"""
+x00 AND y00 -> z05
+x01 AND y01 -> z02
+x02 AND y02 -> z01
+x03 AND y03 -> z03
+x04 AND y04 -> z04
+x05 AND y05 -> z00"""
     return data.split("\n")
 
 
@@ -103,6 +75,32 @@ def walk_wires(wires, connections):
     return wires
 
 
+def get_bitmask(value: int):
+    return [int(x) for x in list(f"{value:045b}"[::-1])]
+
+
+def get_wires(val1: int, val2: int, nb_bits):
+    bitmask1, bitmask2 = get_bitmask(val1), get_bitmask(val2)
+
+    wires = {}
+    for i in range(nb_bits + 1):
+        name1 = f"x{i:02}"
+        name2 = f"y{i:02}"
+        wires[name1] = int(bitmask1[i])
+        wires[name2] = int(bitmask2[i])
+
+    return wires
+
+
+def add(wires, connections):
+    res = walk_wires(wires, connections)
+    number_parts = [x for x in res.keys() if x.startswith("z")]
+    binary_number_str = ""
+    for part in sorted(number_parts, reverse=True):
+        binary_number_str += str(res[part])
+    return binary_number_str
+
+
 def part1() -> int:
     data = get_input_data()  # noqa
     # data = get_test_input_data()
@@ -111,16 +109,63 @@ def part1() -> int:
     print(wires)
     print("*" * 10)
     print(connections)
-    res = walk_wires(wires, connections)
-    number_parts = [x for x in res.keys() if x.startswith("z")]
-    binary_number_str = ""
-    for part in sorted(number_parts, reverse=True):
-        print(part, res[part])
-        binary_number_str += str(res[part])
-    print(binary_number_str)
-    return int(binary_number_str, 2)
+    res = add(wires, connections)
+    return int(res, 2)
+
+
+def get_wrong_pos_indexes(res_bin, expected_bin):
+    wrong_pos = []
+    for i in range(len(res_bin)):
+        if res_bin[i] != expected_bin[i]:
+            wrong_pos.append(i)
+    return wrong_pos
+
+
+def get_numbers(wires):
+    n1_bits = [wires[x] for x in wires.keys() if x.startswith("x")]
+    n2_bits = [wires[x] for x in wires.keys() if x.startswith("y")]
+
+    n1 = int("".join([str(x) for x in n1_bits]), 2)
+    n2 = int("".join([str(x) for x in n2_bits]), 2)
+
+    nb_bits = len(n1_bits)
+
+    return n1, n2, nb_bits + 1, n1_bits, n2_bits
 
 
 def part2() -> int:
     data = get_input_data()  # noqa
+    # data = get_test_input_data()
+    _, connections = parse_data(data)
+
+    wires = {}
+    for i in range(45):
+        wires[f"x{i:02}"] = 0
+        wires[f"y{i:02}"] = 1
+
+    n1, n2, nb_bits, n1_bits, n2_bits = get_numbers(wires)
+
+    res = add(wires, connections)
+    expected = n1 + n2
+    expected_bin = get_bitmask(expected)[:nb_bits][::-1]
+    res_bin = [int(x) for x in res]
+    res_num = int(res, 2)
+
+    print("*" * 10)
+    print(f"n1: {n1}")
+    print(f"n2: {n2}")
+    print(f"nb_bits     : {nb_bits}")
+    print(f"n1 bits     : {n1_bits[::-1]}")
+    print(f"n2 bits     : {n2_bits[::-1]}")
+    print(f"expected_bin: {expected_bin[::-1]}")
+    print(f"res_bin     : {res_bin[::-1]}")
+    print(f"res: {res_num}")
+    print(f"expected: {expected}")
+
+    # Find all the z with false result =
+    wrong_pos = enumerate(res_bin[::-1])
+    wrong_end_wire_numbers = [x[0] for x in wrong_pos if x[1] == 0]
+    wrong_end_wire_names = [f"z{x:02}" for x in wrong_end_wire_numbers]
+    print(f"wrong_end_wire_names: {wrong_end_wire_names}")
+
     return 0
