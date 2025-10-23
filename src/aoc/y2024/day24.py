@@ -5,8 +5,6 @@ from __future__ import annotations
 from collections import deque
 from typing import List, LiteralString
 
-from pyvis.network import Network
-
 from aoc.utils import read_input
 
 
@@ -149,207 +147,101 @@ def part2() -> int:
         wires[f"x{i:02}"] = 0
         wires[f"y{i:02}"] = 1
 
-    n1, n2, nb_bits, n1_bits, n2_bits = get_numbers(wires)
-
-    res = add(wires, connections)
-    expected = n1 + n2
-    expected_bin = get_bitmask(expected)[:nb_bits][::-1]
-    res_bin = [int(x) for x in res]
-    res_num = int(res, 2)
-
     print("*" * 10)
-    print(f"n1: {n1}")
-    print(f"n2: {n2}")
-    print(f"nb_bits     : {nb_bits}")
-    print(f"n1 bits     : {print_number(n1_bits[::-1])}")
-    print(f"n2 bits     : {print_number(n2_bits[::-1])}")
-    print(f"expected_bin: {print_number(expected_bin[::-1])}")
-    print(f"res_bin     : {print_number(res_bin[::-1])}")
-    print(f"res: {res_num}")
-    print(f"expected: {expected}")
+    # print(connections)
 
-    # Find all the z with false result =
-    wrong_pos = enumerate(res_bin[::-1])
-    wrong_end_wire_numbers = [x[0] for x in wrong_pos if x[1] == 0]
-    wrong_end_wire_names = [f"z{x:02}" for x in wrong_end_wire_numbers]
-    print(f"wrong_end_wire_names: {wrong_end_wire_names}")
+    # Check X0 and Y0 to ?
+    x = "x00"
+    y = "y00"
+    target_z = "z00"
 
-    net = Network()
+    res = find_wire(connections, x, y, "XOR")
+    c = find_wire(connections, x, y, "AND")
 
-    for i, connection in enumerate(connections):
-        w1, op, w2, res = connection
-        color1 = "green" if w1.startswith("x") else "black"
-        color2 = "green" if w2.startswith("y") else "black"
-        color3 = "blue" if res.startswith("z") else "black"
-        net.add_node(w1, label=w1, color=color1)
-        net.add_node(w2, label=w2, color=color2)
-        net.add_node(i, label=op, color="red")
-        net.add_node(res, label=res, color=color3)
-        net.add_edge(w1, i)
-        net.add_edge(w2, i)
-        net.add_edge(i, res)
+    if res != target_z:
+        print(f"Expected {target_z}, got {res}")
 
-    net.show("example.html", notebook=False)
+    connections, wrong_outputs, done = fix_connections(connections, c, wrong_outputs=[])
 
-    rules = """
+    while done is False:
+        connections, wrong_outputs, done = fix_connections(
+            connections, c, wrong_outputs
+        )
 
-        X00 XOR Y00 -> Z00
-        X00 AND Y00 -> C00
-
-        X01 XOR Y01 -> I01
-        X01 AND Y01 -> J01
-        I01 XOR C00 -> Z01
-        I01 AND C00 -> K01
-        K01 OR  J01 -> C01
-"""  # noqa
-
-    # score, connection = resolve(connections)
-
-    # while score > 0:
-    #     print(f"Score: {score} - Connection: {connection}")
+    result = ",".join(sorted(wrong_outputs))
+    return result
 
 
-def resolve(connections):
-    c0, connections = check_starting_wires(connections)
-    print(f"c0: {c0}")
-    validated_adders = {}
-    lvl = 1
-    while lvl < 45:
+def fix_connections(
+    connections: List[tuple[str, str, str, str]], c: str, wrong_outputs: List[str]
+):
+    for i in range(1, 45):
         try:
-            c0, connections = check_adder(c0, lvl, connections)
-            validated_adders[lvl] = c0
-            print(f"lvl: {lvl} - c0: {c0}")
-        except RuleException as e:
-            print(f"Level {lvl} - needs fixing {e.connection}, score: {e.score}")
-            return e.score, e.connection
-        lvl += 1
+            x = f"x{i:02}"
+            y = f"y{i:02}"
+            target_z = f"z{i:02}"
 
-    return 0, None
+            t1 = find_wire(connections, x, y, "XOR")
+            t2 = find_wire(connections, t1, c, "XOR")
 
+            if t2 != target_z:
+                print(f"Expected {target_z}, got {t2}")
+                wrong_outputs.append(t2)
+                wrong_outputs.append(target_z)
+                connections = switch_wires(connections, t2, target_z)
 
-def check_adder(carry, lvl, connections):
-    print(f"lvl: {lvl}")
-    nodes = [f"x{lvl:02}", f"y{lvl:02}"]
-    lvl_res = f"z{lvl:02}"
-    i1, j1, k1, r3, new_carry = None, None, None, None, None
+            t3 = find_wire(connections, t1, c, "AND")
+            t4 = find_wire(connections, x, y, "AND")
 
-    # Rule1 x[lvl] XOR y[lvl] -> i[lvl]
-    for connection in connections:
-        w1, op, w2, res = connection
-        if (
-            w1 in nodes
-            and w2 in nodes
-            and op == "XOR"
-            and w1 != w2
-            and intermediate_res(res)
-        ):
-            i1 = res
-            connections.remove(connection)
+            c = find_wire(connections, t3, t4, "OR")
 
-    if not i1:
-        raise RuleException(connection=nodes, score=len(connections))
+            print(x, y, target_z, t1, t2, t3, t4, c)
+        except ValueError as e:
+            print("Error during part 2 analysis:", e)
+            r = find_replacement(connections, e.args[1], e.args[2], e.args[3])
+            connections = switch_wires(connections, r, e.args[1])
+            wrong_outputs.append(e.args[1])
+            wrong_outputs.append(r)
+            print("Switched", r, "with", e.args[1])
+            return connections, wrong_outputs, False
 
-    # Rule2 x[lvl] AND y[lvl] -> j[lvl]
-    for connection in connections:
-        w1, op, w2, res = connection
-        if (
-            w1 in nodes
-            and w2 in nodes
-            and op == "AND"
-            and w1 != w2
-            and intermediate_res(res)
-        ):
-            j1 = res
-            connections.remove(connection)
-
-    if not j1:
-        raise RuleException(connection=nodes, score=len(connections))
-
-    # Rule3 i[lvl] XOR carry -> z[lvl]
-    t_nodes = [i1, carry]
-    for connection in connections:
-        w1, op, w2, res = connection
-        if (
-            w1 in t_nodes
-            and w2 in t_nodes
-            and op == "XOR"
-            and w1 != w2
-            and res == lvl_res
-        ):
-            r3 = res
-            connections.remove(connection)
-
-    if not r3:
-        raise RuleException(connection=t_nodes, score=len(connections))
-
-    # Rule4 i[lvl] AND carry -> k[lvl]
-    t_nodes = [i1, carry]
-    for connection in connections:
-        w1, op, w2, res = connection
-        if (
-            w1 in t_nodes
-            and w2 in t_nodes
-            and op == "AND"
-            and w1 != w2
-            and intermediate_res(res)
-        ):
-            k1 = res
-            connections.remove(connection)
-
-    if not k1:
-        raise RuleException(connection=t_nodes, score=len(connections))
-
-    # Rule5 k[lvl] OR j[lvl] -> carry
-    t_nodes = [k1, j1]
-    for connection in connections:
-        w1, op, w2, res = connection
-        if (
-            w1 in t_nodes
-            and w2 in t_nodes
-            and op == "OR"
-            and w1 != w2
-            and intermediate_res(res)
-        ):
-            new_carry = res
-            connections.remove(connection)
-
-    if not new_carry:
-        raise RuleException(connection=t_nodes, score=len(connections))
-
-    return new_carry, connections
+    return connections, wrong_outputs, True
 
 
-def intermediate_res(res):
+def find_replacement(
+    connections: List[tuple[str, str, str, str]], w1: str, w2: str, op: str
+):
 
-    if res.startswith("z") or res.startswith("x"):
-        return False
-    return True
+    for x, op1, y, res in connections:
+        if op == op1 and w2 == y:
+            print(f"Possible replacement found: {x} {op1} {y} -> {res}")
+            return x
 
-
-class RuleException(Exception):
-
-    def __init__(self, connection, score):
-        self.connection = connection
-        self.score = score
+    raise ValueError(f"No replacement found for {w1} {op} {w2}", w1, w2, op)
 
 
-def check_starting_wires(connections):
-    rule1 = False
-    rule2 = False
-    carry = None
-    nodes = ["x00", "y00"]
+def switch_wires(
+    connections: List[tuple[str, str, str, str]], w1: str, w2: str
+) -> List[tuple[str, str, str, str]]:
 
-    for connection in connections:
-        w1, op, w2, res = connection
-        if w1 in nodes and w2 in nodes and res == "z00" and op == "XOR" and w1 != w2:
-            rule1 = True
-            connections.remove(connection)
-        if w1 in nodes and w2 in nodes and op == "AND" and w1 != w2:
-            rule2 = True
-            carry = res
-            connections.remove(connection)
+    new_connections = []
+    for conn in connections:
+        x, op, y, res = conn
+        if res == w1:
+            new_connections.append((x, op, y, w2))
+        elif res == w2:
+            new_connections.append((x, op, y, w1))
+        else:
+            new_connections.append(conn)
+    return new_connections
 
-    if rule1 and rule2:
-        return carry, connections
 
-    return None, connections
+def find_wire(
+    connections: List[tuple[str, str, str, str]], w1: str, w2: str, op: str
+) -> str:
+    for conn in connections:
+        if conn[0] == w1 and conn[1] == op and conn[2] == w2:
+            return conn[3]
+        elif conn[2] == w1 and conn[1] == op and conn[0] == w2:
+            return conn[3]
+    raise ValueError(f"No connection found for {w1} {op} {w2}", w1, w2, op)

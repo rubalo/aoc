@@ -10,4 +10,4 @@ def test_part1() -> None:
 
 
 def test_part2() -> None:
-    assert part2() == 0
+    assert part2() == "fhc,ggt,hqk,mwh,qhj,z06,z11,z35"
