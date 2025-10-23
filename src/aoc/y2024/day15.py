@@ -209,7 +209,10 @@ def move2(s_pos: complex, direction: complex, data: np.array) -> np.array:
             visited.add(current_pos)
             continue
 
-        if (data[x_n, y_n] == "[" or data[x_n, y_n] == "]") and direction in [LEFT, RIGHT]:
+        if (data[x_n, y_n] == "[" or data[x_n, y_n] == "]") and direction in [
+            LEFT,
+            RIGHT,
+        ]:
             # we hit a case, try to move it also
             visited.add(current_pos)
             visited.add(n_pos)

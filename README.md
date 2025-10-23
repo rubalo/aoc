@@ -10,10 +10,17 @@
 - [Installation](#installation)
 - [License](#license)
 
+
+## Requirements
+
+    * Python 3.12 or higher
+    * uv [Astral](https://docs.astral.sh/uv/)
+
 ## Installation
 
 ```console
-pip install aoc
+uv sync
+uv run aoc
 ```
 
 ## License

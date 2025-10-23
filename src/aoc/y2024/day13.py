@@ -53,8 +53,16 @@ class Machine:
         return 0
 
     def lowest_cost2(self, part: int = 1) -> int:
-        a1, b1, z1 = int(self.button_a.real), int(self.button_b.real), int(self.prize.real)
-        a2, b2, z2 = int(self.button_a.imag), int(self.button_b.imag), int(self.prize.imag)
+        a1, b1, z1 = (
+            int(self.button_a.real),
+            int(self.button_b.real),
+            int(self.prize.real),
+        )
+        a2, b2, z2 = (
+            int(self.button_a.imag),
+            int(self.button_b.imag),
+            int(self.prize.imag),
+        )
 
         if part == 2:  # noqa
             z1 += PART_2_OFFSET
