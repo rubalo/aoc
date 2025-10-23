@@ -3,34 +3,75 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import List, LiteralString
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Tuple
 
 from aoc.utils import read_input
 
+# Type definitions
+Wire = str
+WireValue = int
+WireMap = Dict[Wire, WireValue]
 
-def get_input_data():
+# Constants
+WIRE_WIDTH = 45  # Width of binary numbers
+WIRE_PREFIX_X = "x"
+WIRE_PREFIX_Y = "y"
+WIRE_PREFIX_Z = "z"
+
+
+class Operation(str, Enum):
+    """Valid wire operations."""
+
+    AND = "AND"
+    OR = "OR"
+    XOR = "XOR"
+
+
+@dataclass(frozen=True)
+class Connection:
+    """Represents a connection between wires."""
+
+    input1: str
+    operation: Operation
+    input2: str
+    output: str
+
+
+def get_input_data() -> List[str]:
+    """Get the input data for the puzzle."""
     return [x.strip() for x in read_input(day=24, year=2024)]
 
 
-def parse_data(data: list[str]):
+def parse_data(data: List[str]) -> Tuple[WireMap, List[Connection]]:
+    """Parse the input data into wire values and connections.
+
+    Args:
+        data: Raw input lines
+
+    Returns:
+        Tuple of (wire values, wire connections)
+    """
     split_pos = data.index("")
     raw_wires, raw_connections = data[:split_pos], data[split_pos + 1 :]
 
-    wires = {}
+    wires: WireMap = {}
     for wire in raw_wires:
-        wire = wire.split(": ")
-        wires[wire[0]] = int(wire[1])
+        name, value = wire.split(": ")
+        wires[name] = int(value)
 
-    connections = []
+    connections: List[Connection] = []
     for connection in raw_connections:
         code, res = connection.split(" -> ")
         w1, op, w2 = code.split(" ")
-        connections.append((w1, op, w2, res))
+        connections.append(Connection(w1, Operation(op), w2, res))
 
     return wires, connections
 
 
-def get_test_input_data() -> list[LiteralString]:
+def get_test_input_data() -> List[str]:
+    """Get test input data for validating the solution."""
     data = """x00: 0
 x01: 1
 x02: 0
@@ -53,62 +94,94 @@ x05 AND y05 -> z00"""
     return data.split("\n")
 
 
-def walk_wires(wires, connections):
-    queue = deque(connections)
+def walk_wires(wires: WireMap, connections: List[Connection]) -> WireMap:
+    """Process wire connections until all outputs are computed.
+
+    Args:
+        wires: Current wire states
+        connections: List of wire connections to process
+
+    Returns:
+        Updated wire states
+    """
+    queue: deque[Connection] = deque(connections)
 
     while queue:
-        w1, op, w2, res = queue.popleft()
-
-        if w1 in wires and w2 in wires:
-            if op == "AND":
-                wires[res] = wires[w1] & wires[w2]
-            elif op == "OR":
-                wires[res] = wires[w1] | wires[w2]
-            elif op == "XOR":
-                wires[res] = wires[w1] ^ wires[w2]
+        conn = queue.popleft()
+        if conn.input1 in wires and conn.input2 in wires:
+            if conn.operation == Operation.AND:
+                wires[conn.output] = wires[conn.input1] & wires[conn.input2]
+            elif conn.operation == Operation.OR:
+                wires[conn.output] = wires[conn.input1] | wires[conn.input2]
+            elif conn.operation == Operation.XOR:
+                wires[conn.output] = wires[conn.input1] ^ wires[conn.input2]
             else:
-                raise ValueError(f"Unknown operation: {op}")
-
+                raise ValueError(f"Unknown operation: {conn.operation}")
         else:
-            queue.append((w1, op, w2, res))
+            queue.append(conn)
 
     return wires
 
 
-def get_bitmask(value: int):
-    return [int(x) for x in list(f"{value:045b}"[::-1])]
+def get_bitmask(value: int, width: int = WIRE_WIDTH) -> List[int]:
+    """Convert an integer to its binary representation as a list of bits.
+
+    Args:
+        value: Integer to convert
+        width: Number of bits in the output (default: WIRE_WIDTH)
+
+    Returns:
+        List of integers (0 or 1) representing the bits from least to most significant
+    """
+    return [int((value >> i) & 1) for i in range(width)]
 
 
-def get_wires(val1: int, val2: int, nb_bits):
+def get_wires(val1: int, val2: int, nb_bits: int) -> WireMap:
+    """Create a wire map from two input values.
+
+    Args:
+        val1: First input value
+        val2: Second input value
+        nb_bits: Number of bits to use
+
+    Returns:
+        Wire map with x and y wires set according to input values
+    """
     bitmask1, bitmask2 = get_bitmask(val1), get_bitmask(val2)
 
-    wires = {}
+    wires: WireMap = {}
     for i in range(nb_bits + 1):
-        name1 = f"x{i:02}"
-        name2 = f"y{i:02}"
-        wires[name1] = int(bitmask1[i])
-        wires[name2] = int(bitmask2[i])
+        wires[f"{WIRE_PREFIX_X}{i:02}"] = bitmask1[i]
+        wires[f"{WIRE_PREFIX_Y}{i:02}"] = bitmask2[i]
 
     return wires
 
 
-def add(wires, connections):
+def add(wires: WireMap, connections: List[Connection]) -> str:
+    """Process connections and combine results into a binary number.
+
+    Args:
+        wires: Initial wire states
+        connections: List of wire connections to process
+
+    Returns:
+        Binary string representing the final number
+    """
     res = walk_wires(wires, connections)
-    number_parts = [x for x in res.keys() if x.startswith("z")]
-    binary_number_str = ""
-    for part in sorted(number_parts, reverse=True):
-        binary_number_str += str(res[part])
-    return binary_number_str
+    z_wires = sorted(
+        (w for w in res.keys() if w.startswith(WIRE_PREFIX_Z)), reverse=True
+    )
+    return "".join(str(res[wire]) for wire in z_wires)
 
 
 def part1() -> int:
-    data = get_input_data()  # noqa
-    # data = get_test_input_data()
+    """Solve part 1 of the puzzle.
+
+    Returns:
+        int: Solution to part 1
+    """
+    data = get_input_data()
     wires, connections = parse_data(data)
-    print("*" * 10)
-    print(wires)
-    print("*" * 10)
-    print(connections)
     res = add(wires, connections)
     return int(res, 2)
 
@@ -137,111 +210,152 @@ def print_number(number: List[int]):
     print("".join([str(x) for x in number[::-1]]))
 
 
-def part2() -> int:
-    data = get_input_data()  # noqa
-    # data = get_test_input_data()
-    _, connections = parse_data(data)
+def part2() -> str:
+    """Solve part 2 of the puzzle.
 
-    wires = {}
-    for i in range(45):
-        wires[f"x{i:02}"] = 0
-        wires[f"y{i:02}"] = 1
+    Returns:
+        int: Solution to part 2 (currently returns 0)
+    """
+    # Initial puzzle setup
+    _, connections = parse_data(get_input_data())
 
-    print("*" * 10)
-    # print(connections)
+    # Initialize wires
+    wires: WireMap = {}
+    for i in range(WIRE_WIDTH):
+        wires[f"{WIRE_PREFIX_X}{i:02}"] = 0
+        wires[f"{WIRE_PREFIX_Y}{i:02}"] = 1
 
-    # Check X0 and Y0 to ?
-    x = "x00"
-    y = "y00"
-    target_z = "z00"
+    # Initial check
+    x, y = f"{WIRE_PREFIX_X}00", f"{WIRE_PREFIX_Y}00"
 
-    res = find_wire(connections, x, y, "XOR")
-    c = find_wire(connections, x, y, "AND")
+    carry = find_wire(connections, x, y, Operation.AND.value)
 
-    if res != target_z:
-        print(f"Expected {target_z}, got {res}")
+    outputs = []
+    connections, outputs, finished = fix_connections(connections, carry, outputs)
 
-    connections, wrong_outputs, done = fix_connections(connections, c, wrong_outputs=[])
+    while finished is False:
+        connections, outputs, finished = fix_connections(connections, carry, outputs)
 
-    while done is False:
-        connections, wrong_outputs, done = fix_connections(
-            connections, c, wrong_outputs
-        )
-
-    result = ",".join(sorted(wrong_outputs))
-    return result
+    return ",".join(sorted(outputs))
 
 
 def fix_connections(
-    connections: List[tuple[str, str, str, str]], c: str, wrong_outputs: List[str]
-):
-    for i in range(1, 45):
-        try:
-            x = f"x{i:02}"
-            y = f"y{i:02}"
-            target_z = f"z{i:02}"
+    connections: List[Connection], c: Wire, wrong_outputs: List[Wire]
+) -> Tuple[List[Connection], List[Wire], bool]:
+    """Fix the wire connections by finding and correcting mismatches.
 
-            t1 = find_wire(connections, x, y, "XOR")
-            t2 = find_wire(connections, t1, c, "XOR")
+    Args:
+        connections: Current wire connections
+        c: Current carry wire
+        wrong_outputs: List of known wrong outputs
+
+    Returns:
+        Tuple containing:
+        - Updated connections list
+        - Updated wrong outputs list
+        - Boolean indicating if all fixes are complete
+    """
+    for i in range(1, WIRE_WIDTH):
+        try:
+            x = f"{WIRE_PREFIX_X}{i:02}"
+            y = f"{WIRE_PREFIX_Y}{i:02}"
+            target_z = f"{WIRE_PREFIX_Z}{i:02}"
+
+            t1 = find_wire(connections, x, y, Operation.XOR.value)
+            t2 = find_wire(connections, t1, c, Operation.XOR.value)
 
             if t2 != target_z:
-                print(f"Expected {target_z}, got {t2}")
                 wrong_outputs.append(t2)
                 wrong_outputs.append(target_z)
                 connections = switch_wires(connections, t2, target_z)
 
-            t3 = find_wire(connections, t1, c, "AND")
-            t4 = find_wire(connections, x, y, "AND")
+            t3 = find_wire(connections, t1, c, Operation.AND.value)
+            t4 = find_wire(connections, x, y, Operation.AND.value)
+            c = find_wire(connections, t3, t4, Operation.OR.value)
 
-            c = find_wire(connections, t3, t4, "OR")
-
-            print(x, y, target_z, t1, t2, t3, t4, c)
         except ValueError as e:
-            print("Error during part 2 analysis:", e)
+            if len(e.args) < 4:
+                raise
             r = find_replacement(connections, e.args[1], e.args[2], e.args[3])
             connections = switch_wires(connections, r, e.args[1])
-            wrong_outputs.append(e.args[1])
-            wrong_outputs.append(r)
-            print("Switched", r, "with", e.args[1])
+            wrong_outputs.extend([e.args[1], r])
             return connections, wrong_outputs, False
 
     return connections, wrong_outputs, True
 
 
 def find_replacement(
-    connections: List[tuple[str, str, str, str]], w1: str, w2: str, op: str
-):
+    connections: List[Connection], w1: Wire, w2: Wire, op: str
+) -> Wire:
+    """Find a replacement wire that can be used with w2 and op.
 
-    for x, op1, y, res in connections:
-        if op == op1 and w2 == y:
-            print(f"Possible replacement found: {x} {op1} {y} -> {res}")
-            return x
+    Args:
+        connections: List of wire connections
+        w1: Wire to find replacement for
+        w2: Second wire in the operation
+        op: Operation being performed
+
+    Returns:
+        Name of wire that could replace w1
+
+    Raises:
+        ValueError: If no suitable replacement is found
+    """
+    op_enum = Operation(op)
+    for conn in connections:
+        if conn.operation == op_enum and conn.input2 == w2:
+            return conn.input1
 
     raise ValueError(f"No replacement found for {w1} {op} {w2}", w1, w2, op)
 
 
-def switch_wires(
-    connections: List[tuple[str, str, str, str]], w1: str, w2: str
-) -> List[tuple[str, str, str, str]]:
+def switch_wires(connections: List[Connection], w1: Wire, w2: Wire) -> List[Connection]:
+    """Create new connections list with two output wires swapped.
 
-    new_connections = []
+    Args:
+        connections: Original connections list
+        w1: First wire to swap
+        w2: Second wire to swap
+
+    Returns:
+        New connections list with swapped wires
+    """
+    new_connections: List[Connection] = []
     for conn in connections:
-        x, op, y, res = conn
-        if res == w1:
-            new_connections.append((x, op, y, w2))
-        elif res == w2:
-            new_connections.append((x, op, y, w1))
+        if conn.output == w1:
+            new_connections.append(
+                Connection(conn.input1, conn.operation, conn.input2, w2)
+            )
+        elif conn.output == w2:
+            new_connections.append(
+                Connection(conn.input1, conn.operation, conn.input2, w1)
+            )
         else:
             new_connections.append(conn)
     return new_connections
 
 
-def find_wire(
-    connections: List[tuple[str, str, str, str]], w1: str, w2: str, op: str
-) -> str:
+def find_wire(connections: List[Connection], w1: Wire, w2: Wire, op: str) -> Wire:
+    """Find a connection's output wire given inputs and operation.
+
+    Args:
+        connections: List of wire connections
+        w1: First input wire
+        w2: Second input wire
+        op: Operation to look for
+
+    Returns:
+        The output wire name
+
+    Raises:
+        ValueError: If no matching connection is found
+    """
+    op_enum = Operation(op)
     for conn in connections:
-        if conn[0] == w1 and conn[1] == op and conn[2] == w2:
-            return conn[3]
-        elif conn[2] == w1 and conn[1] == op and conn[0] == w2:
-            return conn[3]
+        if (
+            (conn.input1 == w1 and conn.input2 == w2)
+            or (conn.input1 == w2 and conn.input2 == w1)
+        ) and conn.operation == op_enum:
+            return conn.output
+
     raise ValueError(f"No connection found for {w1} {op} {w2}", w1, w2, op)
