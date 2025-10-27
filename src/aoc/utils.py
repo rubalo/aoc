@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import git
+
+if TYPE_CHECKING:
+    import numpy as np
 
 from aoc.aoc import Aoc
 
@@ -256,3 +260,90 @@ def read_input(day: int, year: int) -> list[str]:
 
     with open(day_file) as f:
         return f.readlines()
+
+
+class Colors:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
+def print_board(
+    board: np.array,
+    reds: list[complex] | None = None,
+    greens: list[complex] | None = None,
+    blues: list[complex] | None = None,
+    yellow: list[complex] | None = None,
+    padding=3,
+) -> None:
+    if not reds:
+        reds = []
+    if not greens:
+        greens = []
+    if not blues:
+        blues = []
+    if not yellow:
+        yellow = []
+
+    if not padding:
+        padding = len(max(board.flatten(), key=len)) + 1
+
+    print("  ", end="")  # noqa
+    for i in range(board.shape[1]):
+        print(f"{i:{padding}d}".ljust(padding), end="")  # noqa
+
+    print()  # noqa
+
+    for i, row in enumerate(board):
+        print(f"{i:{padding}d}", end=" ")  # noqa
+        for j, _ in enumerate(row):
+            val = board[i, j]
+            if not isinstance(val, str):
+                val = str(val)
+            if complex(i, j) in reds:
+                print(Colors.FAIL + val.ljust(padding) + Colors.ENDC, end="")  # noqa
+            elif complex(i, j) in greens:
+                print(Colors.OKGREEN + val.ljust(padding) + Colors.ENDC, end="")  # noqa
+            elif complex(i, j) in blues:
+                print(Colors.OKBLUE + val.ljust(padding) + Colors.ENDC, end="")  # noqa
+            elif complex(i, j) in yellow:
+                print(Colors.WARNING + val.ljust(padding) + Colors.ENDC, end="")  # noqa
+            else:
+                print(val.ljust(padding), end="")  # noqa
+        print()  # noqa
+
+
+UP = complex(0, -1)
+DOWN = complex(0, 1)
+LEFT = complex(-1, 0)
+RIGHT = complex(1, 0)
+
+
+def get_value_at(board: np.array, position: complex) -> str:
+    x, y = get_pos_coord(position)
+    if x in range(board.shape[0]) and y in range(board.shape[1]):
+        return board[x, y]
+    raise IndexError
+
+
+def get_pos_coord(pos: complex) -> tuple[int, int]:
+    return int(pos.real), int(pos.imag)
+
+
+def time_it(func):
+    import time
+
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"{func.__name__} took {end - start:.2f} seconds")  # noqa
+        return result
+
+    return wrapper

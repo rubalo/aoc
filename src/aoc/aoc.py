@@ -42,6 +42,7 @@ class Aoc:
         url = f"https://adventofcode.com/{year}/day/{day}/input"
         headers = {"Cookie": f"session={self.token}"}
         response = requests.get(url, headers=headers, timeout=5)
+        breakpoint()
         response.raise_for_status()
 
         with open(input_file, "w") as f:

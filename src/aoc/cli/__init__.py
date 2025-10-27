@@ -29,11 +29,25 @@ logger = logging.getLogger(__name__)
 MIN_AOC_YEAR = 2015
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]}, invoke_without_command=False)
+@click.group(
+    context_settings={"help_option_names": ["-h", "--help"]},
+    invoke_without_command=False,
+)
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
-@click.option("--day", "-d", type=int, help="Day of the Advent of Code", required=False, default=0)
-@click.option("--year", "-y", type=int, help="Year of the Advent of Code", required=False, default=0)
-@click.option("--token", "-t", help="Session token for the Advent of Code", required=False)
+@click.option(
+    "--day", "-d", type=int, help="Day of the Advent of Code", required=False, default=0
+)
+@click.option(
+    "--year",
+    "-y",
+    type=int,
+    help="Year of the Advent of Code",
+    required=False,
+    default=0,
+)
+@click.option(
+    "--token", "-t", help="Session token for the Advent of Code", required=False
+)
 @click.version_option(version=__version__, prog_name="aoc")
 @click.pass_context
 def aoc(ctx, *, verbose: bool, day: int, year: int, token: str) -> None:
@@ -53,7 +67,9 @@ def aoc(ctx, *, verbose: bool, day: int, year: int, token: str) -> None:
         logger.debug("Verbose mode enabled.")
 
     if year == 0:
-        i_year = click.prompt("Enter the year of the Advent of Code", type=int, default=c_year)
+        i_year = click.prompt(
+            "Enter the year of the Advent of Code", type=int, default=c_year
+        )
         if not MIN_AOC_YEAR < i_year < c_year + 1:
             click.echo(f"Year must be between 2015 and {c_year}")
             click.echo("Aborting...")
@@ -90,7 +106,14 @@ def init(ctx) -> None:
 
 
 @aoc.command()
-@click.option("--part", "-p", type=int, help="Part of the Advent of Code", required=False, default=0)
+@click.option(
+    "--part",
+    "-p",
+    type=int,
+    help="Part of the Advent of Code",
+    required=False,
+    default=0,
+)
 @click.pass_context
 def run(ctx, part) -> None:
     day = ctx.obj["day"]

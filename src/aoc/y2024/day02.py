@@ -27,7 +27,9 @@ def part1() -> int:
 def is_safe(levels: list[int]) -> bool:
     diffs = [levels[i] - levels[i + 1] for i in range(len(levels) - 1)]
 
-    if (all(x > 0 for x in diffs) or all(x < 0 for x in diffs)) and all(0 < abs(x) < MAX_DIFF for x in diffs):
+    if (all(x > 0 for x in diffs) or all(x < 0 for x in diffs)) and all(
+        0 < abs(x) < MAX_DIFF for x in diffs
+    ):
         return True
     return False
 
