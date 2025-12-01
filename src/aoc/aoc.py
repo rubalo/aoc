@@ -37,6 +37,7 @@ class Aoc:
 
         if input_file.exists():
             logger.info("Input data already fetched for year %s, day %s", year, day)
+            logger.info("File: %s", input_file)
             return
 
         url = f"https://adventofcode.com/{year}/day/{day}/input"
