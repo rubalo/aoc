@@ -1,14 +1,36 @@
-# Advent of Code 2025 - Day 2
-
-from __future__ import annotations
-
 import logging
-from typing import LiteralString
+from typing import LiteralString, Protocol
 
 from aoc.utils import read_input
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+class IDValidator(Protocol):
+    def __call__(self, id_str: str) -> bool: ...
+
+
+def id_repeated_twice(id_str: str) -> bool:
+    if len(id_str) % 2 != 0:
+        return False
+    half_length = len(id_str) // 2
+    if id_str[:half_length] != id_str[half_length:]:
+        return False
+    return True
+
+
+def id_repeated_at_least_twice(id_str: str) -> bool:
+    length = len(id_str)
+    for i in range(length, 1, -1):
+        if length % i != 0:
+            continue
+        part_length = length // i
+        part = id_str[:part_length]
+        if part * i == id_str:
+            logger.debug(f"ID {id_str} is repeated at least twice as {part} * {i}")
+            return True
+    return False
 
 
 def get_input_data():
@@ -35,43 +57,33 @@ def get_test_input_data() -> list[LiteralString]:
     return data.split("\n")
 
 
-def detect_invalid_ids(ranges: list[tuple[int, int]]) -> list[int]:
+def detect_invalid_ids(
+    ranges: list[tuple[int, int]], funcs: list[IDValidator]
+) -> list[int]:
     invalid_ids = []
     for start, end in ranges:
         logger.debug(f"Checking range: {start}-{end}")
         for id_num in range(start, end + 1):
             id_str = str(id_num)
-            if not id_is_valid(id_str):
-                logger.debug(f"Invalid ID found: {id_str}")
-                invalid_ids.append(id_num)
+            for func in funcs:
+                if func(id_str):
+                    logger.debug(f"Invalid ID found: {id_str}")
+                    invalid_ids.append(id_num)
 
     return invalid_ids
-
-
-def id_is_valid(id_str: str) -> bool:
-    if id_has_repetition(id_str):
-        return False
-    return True
-
-
-def id_has_repetition(id_str: str) -> bool:
-    if len(id_str) % 2 != 0:
-        return False
-    half_length = len(id_str) // 2
-    if id_str[:half_length] != id_str[half_length:]:
-        return False
-    return True
 
 
 def part1() -> int:
     data = get_input_data()  # noqa
     parsed_data = parse_data(data)
-    invalid_ids = detect_invalid_ids(parsed_data)
+    funcs = [id_repeated_twice]
+    invalid_ids = detect_invalid_ids(parsed_data, funcs)
     return sum(invalid_ids)
 
 
 def part2() -> int:
     data = get_input_data()  # noqa
     parsed_data = parse_data(data)
-    print(parsed_data)
-    return 0
+    funcs = [id_repeated_at_least_twice]
+    invalid_ids = detect_invalid_ids(parsed_data, funcs)
+    return sum(invalid_ids)
