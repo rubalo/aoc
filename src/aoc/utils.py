@@ -169,11 +169,15 @@ def get_test_input_data() -> list[LiteralString]:
 
 def part1() -> int:
     data = get_input_data()  # noqa
+    data = get_test_input_data()  # noqa
+    data = parse_data(data)  # noqa
     return 0
 
 
 def part2() -> int:
     data = get_input_data()  # noqa
+    data = get_test_input_data()  # noqa
+    data = parse_data(data)  # noqa
     return 0
 """
 
@@ -196,7 +200,6 @@ def create_day_test_file(day: int, year: int) -> None:
     template = f"""# Advent of Code {year} - Day {day} - Test
 
 from __future__ import annotations
-from pathlib import Path
 
 from aoc.y{year}.day{day:02} import part1, part2
 
