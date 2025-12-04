@@ -9,9 +9,7 @@ description = ''
 readme = "README.md"
 requires-python = ">=3.12"
 keywords = []
-authors = [
-  { name = "rubalo", email = "rubalo@users.noreply.github.com" },
-]
+authors = [{ name = "rubalo", email = "rubalo@users.noreply.github.com" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
@@ -49,27 +47,21 @@ version_file = "src/aoc/__about__.py"
 source_pkgs = ["aoc", "tests"]
 branch = true
 parallel = true
-omit = [
-  "src/aoc/__about__.py",
-]
+omit = ["src/aoc/__about__.py"]
 
 [tool.coverage.paths]
 aoc = ["src/aoc", "*/aoc/src/aoc"]
 tests = ["tests", "*/aoc/tests"]
 
 [tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
 
 [dependency-groups]
 dev = [
-    "ipdb>=0.13.13",
-    "pre-commit>=4.1.0",
-    "pytest>=8.3.4",
-    "setuptools-scm>=8.1.0",
+  "ipdb>=0.13.13",
+  "pre-commit>=4.1.0",
+  "pytest>=8.3.4",
+  "setuptools-scm>=8.1.0",
 ]
 
 [tool.isort]
