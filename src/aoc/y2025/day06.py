@@ -30,6 +30,9 @@ class Operation:
         else:
             raise ValueError(f"Unknown operation: {self.symbol}")
 
+    def add_value(self, value: int) -> None:
+        self.values.append(value)
+
 
 def parse_data(data: list[str]) -> list[Operation]:
     input = []
@@ -48,6 +51,39 @@ def parse_data(data: list[str]) -> list[Operation]:
         operation = Operation(op_symbol, values)
         print(f"Operation: {op_symbol} on {values}")
         operations.append(operation)
+
+    return operations
+
+
+def parse_data_cephal(data: list[str]) -> list[Operation]:
+    input = []
+    for line in data:
+        if not line:
+            continue
+        if line[-1] == "\n":
+            line = line[:-1]
+        chars = [x for x in line]
+        print(f"Chars: {chars}")
+        input.append(chars)
+
+    input = list(map(list, zip(*input)))
+
+    operations = []
+    operation = Operation("", [])
+
+    for i in range(len(input)):
+        line = input[i]
+        if all(c == " " for c in line):
+            operations.append(operation)
+            continue
+
+        if line[-1] in ("+", "*"):
+            operation = Operation(line[-1], [])
+
+        number = int("".join(line[:-1]).strip())
+        operation.add_value(number)
+
+    operations.append(operation)
 
     return operations
 
@@ -75,6 +111,9 @@ def part1() -> int:
 
 def part2() -> int:
     data = get_input_data()  # noqa
-    data = get_test_input_data()  # noqa
-    data = parse_data(data)  # noqa
-    return 0
+    data = parse_data_cephal(data)  # noqa
+    print(data)
+    result = 0
+    for operation in data:
+        result += operation.apply()
+    return result
