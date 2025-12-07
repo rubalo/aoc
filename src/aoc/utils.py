@@ -153,6 +153,9 @@ from __future__ import annotations
 from typing import LiteralString
 from aoc.utils import read_input
 
+import logging
+logger = logging.getLogger(__name__)
+
 def get_input_data():
     return read_input(day={day}, year={year})
 
