@@ -80,7 +80,8 @@ def compute_distances(points: list[Point3D]) -> list[tuple[float, tuple[int, int
 
 def connecting_circuits(
     distances: list[tuple[float, tuple[int, int]]],
-) -> dict[int, int]:
+    nb_boxes: int,
+) -> tuple[collections.Counter, int, int]:
     """Connect circuits based on distances.
     Args:
         distances (list[tuple[float, tuple[int, int]]]): Sorted list of distances and point indices.
@@ -88,6 +89,8 @@ def connecting_circuits(
 
     circuits = {}
     nb_circuits = 0
+    circuits_by_length = collections.Counter()
+    i, j = -1, -1
 
     for _, (i, j) in distances:
         if i not in circuits and j not in circuits:
@@ -110,15 +113,23 @@ def connecting_circuits(
                     if circuits[key] == circuit_to_change:
                         circuits[key] = circuits[i]
 
-    circuits_by_length = collections.Counter(circuits.values())
-    return circuits_by_length
+        circuits_by_length = collections.Counter(circuits.values())
+        logger.debug(f"Circuits by length: {circuits_by_length}")
+        if (
+            len(circuits_by_length) == 1
+            and list(circuits_by_length.values())[0] == nb_boxes
+        ):
+            logger.info("All boxes are connected.")
+            break
+    return circuits_by_length, i, j
 
 
 def part1() -> int:
     data = get_input_data()  # noqa
-    data = parse_data(data)  # noqa
-    distances = compute_distances(data)  # noqa
-    circuits_by_length = connecting_circuits(distances[: 1000 + 1])  # noqa
+    data = parse_data(data)
+    distances = compute_distances(data)
+    nb_boxes = len(data)
+    circuits_by_length, _, _ = connecting_circuits(distances[: 1000 + 1], nb_boxes)
     lengths = list(circuits_by_length.values())
     circuit_lengths = sorted(lengths, reverse=True)
     result = 1
@@ -129,6 +140,11 @@ def part1() -> int:
 
 def part2() -> int:
     data = get_input_data()  # noqa
-    data = get_test_input_data()  # noqa
-    data = parse_data(data)  # noqa
-    return 0
+    data = parse_data(data)
+    distances = compute_distances(data)
+    nb_boxes = len(data)
+    _, i, j = connecting_circuits(distances, nb_boxes)
+    point_i = data[i]
+    point_j = data[j]
+    logger.info(f"Last connected points: {point_i} and {point_j}")
+    return point_i.x * point_j.x
