@@ -30,6 +30,7 @@ dependencies = [
   "numpy",
   "requests",
   "sympy",
+  "pygame>=2.6.1",
 ]
 
 [project.urls]
