@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import logging
+import queue
+import random
 import sys
-from typing import Iterable, LiteralString
+import threading
+import time
+from typing import LiteralString
 
 import pygame
 
@@ -13,11 +17,25 @@ from aoc.utils import read_input
 logger = logging.getLogger(__name__)
 
 
+Color = {
+    "white": (255, 255, 255),
+    "red": (255, 0, 0),
+    "green": (0, 255, 0),
+    "blue": (0, 0, 255),
+    "yellow": (255, 255, 0),
+}
+
+
+def get_random_color():
+    return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+
 def get_input_data():
     return read_input(day=9, year=2025)
 
 
 def parse_data(data: list[str]) -> list[complex]:
+    """Return a list of complex numbers representing the points"""
     input = []
     for line in data:
         if line.strip() == "":
@@ -60,7 +78,7 @@ def compute_surfaces(data: list[complex]) -> tuple[complex, complex, int]:
                 max_p1 = p1
                 max_p2 = p2
 
-    logger.info(f"Max surface: {max_surface} between points {max_p1} and {max_p2}")
+    logger.debug(f"Max surface: {max_surface} between points {max_p1} and {max_p2}")
 
     return max_p1, max_p2, int(max_surface)
 
@@ -74,9 +92,6 @@ def init_matrix(data: list[complex]) -> tuple[int, int, list[Vector]]:
     vectors = []
     max_x = 0
     max_y = 0
-
-    # Close the loop
-    data.append(data[0])
 
     for i in range(len(data) - 1):
         p1 = data[i]
@@ -93,28 +108,6 @@ def init_matrix(data: list[complex]) -> tuple[int, int, list[Vector]]:
     return max_x, max_y, vectors
 
 
-def find_best_font_size(win_w: int, win_h: int, grid_w: int, grid_h: int) -> int:
-    size = 1
-    best = 1
-
-    font = pygame.font.SysFont("monospace", size)
-    glyph = font.render("A", True, (255, 255, 255))
-    char_w, char_h = glyph.get_size()
-
-    total_w = char_w * grid_w
-    total_h = char_h * grid_h
-
-    while total_w < win_w and total_h < win_h:
-        best = size
-        size += 1
-        font = pygame.font.SysFont("monospace", size)
-        glyph = font.render("A", True, (255, 255, 255))
-        char_w, char_h = glyph.get_size()
-        total_w = char_w * grid_w
-        total_h = char_h * grid_h
-    return best
-
-
 def part1() -> int:
     data = get_input_data()  # noqa
     data = parse_data(data)  # noqa
@@ -122,56 +115,39 @@ def part1() -> int:
     return max_surface
 
 
-def wait_for_key():
-    waiting = True
-    while waiting:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
-                waiting = False
-
-
 def get_rectangle(
-    data: list[Vector],
-) -> Iterable[tuple[complex, complex, complex, complex]]:
+    p1: complex,
+    p2: complex,
+) -> tuple[complex, complex, complex, complex]:
+    """Return the rectangle defined by p1 and p2"""
+    top_left = complex(min(p1.real, p2.real), min(p1.imag, p2.imag))
+    top_right = complex(max(p1.real, p2.real), min(p1.imag, p2.imag))
+    bottom_left = complex(min(p1.real, p2.real), max(p1.imag, p2.imag))
+    bottom_right = complex(max(p1.real, p2.real), max(p1.imag, p2.imag))
 
-    # Close the loop
-    data.append((data[0][0], data[0][1]))
-
-    interior = ccw(data[0][0], data[0][1], data[1][1])
-
-    for i in range(len(data) - 1):
-        p1, p2 = data[i]
-        p3, p4 = data[i + 1]
-        assert p2 == p3, "Vectors are not connected"
-        if ccw(p1, p2, p4) != interior:
-            continue
-
-        pr = p1 + (p4 - p3)
-
-        yield (p1, p2, p4, pr)
+    return top_left, top_right, bottom_left, bottom_right
 
 
 def ccw(a: complex, b: complex, c: complex) -> bool:
     return (c.imag - a.imag) * (b.real - a.real) > (b.imag - a.imag) * (c.real - a.real)
 
 
-def part2():
-    data = get_input_data()  # noqa
-    data = get_test_input_data()  # noqa
-    data = parse_data(data)  # noqa
+DEFAULT_COLOR = (200, 200, 200)
 
+
+def pygame_loop(
+    cmd_queue: queue.Queue,
+    event_queue: queue.Queue,
+    width: int,
+    height: int,
+    title: str,
+    fps: int = 60,
+):
     logger.info("Starting Pygame visualization...")
     pygame.init()
-
-    logger.info("Initializing base matrix...")
-    max_x, max_y, base_matrix = init_matrix(data)
-    logger.debug("Base matrix initialized")
+    pygame.key.set_repeat(300, 40)
+    pygame.display.set_caption(title)
+    clock = pygame.time.Clock()
 
     # ----- WINDOW = HALF THE SCREEN -----
     info = pygame.display.Info()
@@ -179,56 +155,162 @@ def part2():
 
     WIN_W = SCREEN_W // 2
     WIN_H = SCREEN_H // 2
-    COEFF_W = WIN_W / (max_x + 2)
-    COEFF_H = WIN_H / (max_y + 2)
-
+    COEFF_W = WIN_W / (width + 2)
+    COEFF_H = WIN_H / (height + 2)
     screen = pygame.display.set_mode((WIN_W, WIN_H))
-    pygame.display.set_caption("Advent of Code 2025 - Day 9 Visualization")
 
-    clock = pygame.time.Clock()
+    bg_color = (25, 25, 25)
+
+    font_cache = {}
+
+    def get_font(size: int) -> pygame.font.Font:
+        if size not in font_cache:
+            font_cache[size] = pygame.font.SysFont("Arial", size)
+        return font_cache[size]
+
     running = True
-    first_frame = True
-    matrix = base_matrix
-    rectangles = get_rectangle(base_matrix)
+    map: list[tuple[complex, complex]] = []
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                logger.debug("QUIT event received in Pygame loop")
                 running = False
-
-        screen.fill((0, 0, 0))
-
-        for vector in matrix:
-            p1, p2 = vector
-            pygame.draw.line(
-                screen,
-                (255, 255, 255),
-                (int(p1.real * COEFF_W), int(p1.imag * COEFF_H)),
-                (int(p2.real * COEFF_W), int(p2.imag * COEFF_H)),
-                2,
-            )
-        if not first_frame:
-            try:
-                p1, p2, p3, p4 = next(rectangles)
-            except StopIteration:
+                event_queue.put(event)
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                logger.debug("ESCAPE key pressed, quitting Pygame loop")
                 running = False
-                continue
-            pygame.draw.polygon(
-                screen,
-                (0, 255, 0),
-                [
-                    (int(p1.real * COEFF_W), int(p1.imag * COEFF_H)),
-                    (int(p2.real * COEFF_W), int(p2.imag * COEFF_H)),
-                    (int(p3.real * COEFF_W), int(p3.imag * COEFF_H)),
-                    (int(p4.real * COEFF_W), int(p4.imag * COEFF_H)),
-                ],
-                2,
-            )
-        first_frame = False
+                event_queue.put(event)
+            else:  # Forward other events to the event queue
+                event_queue.put(event)
+
+        try:
+            while True:
+                cmd, data = cmd_queue.get_nowait()
+                if cmd == "QUIT":
+                    running = False
+                    pygame.quit()
+                    sys.exit()
+                elif cmd == "POINT":
+                    point, color, size = data
+                    pygame.draw.circle(
+                        screen,
+                        color,
+                        (int(point.real * COEFF_W), int(point.imag * COEFF_H)),
+                        size,
+                    )
+                elif cmd == "LINE":
+                    start, end, color, width = data
+                    pygame.draw.line(
+                        screen,
+                        color,
+                        (int(start.real * COEFF_W), int(start.imag * COEFF_H)),
+                        (int(end.real * COEFF_W), int(end.imag * COEFF_H)),
+                        width,
+                    )
+                elif cmd == "RECTANGLE":
+                    p1, p2, p3, p4, color, width = data
+                    pygame.draw.polygon(
+                        screen,
+                        color,
+                        [
+                            (int(p1.real * COEFF_W), int(p1.imag * COEFF_H)),
+                            (int(p2.real * COEFF_W), int(p2.imag * COEFF_H)),
+                            (int(p4.real * COEFF_W), int(p4.imag * COEFF_H)),
+                            (int(p3.real * COEFF_W), int(p3.imag * COEFF_H)),
+                        ],
+                        width,
+                    )
+                elif cmd == "MAP":
+                    p1, p2 = data
+                    map.append((p1, p2))
+                elif cmd == "CLEAR":
+                    screen.fill(bg_color)
+                    for p1, p2 in map:
+                        pygame.draw.line(
+                            screen,
+                            DEFAULT_COLOR,
+                            (int(p1.real * COEFF_W), int(p1.imag * COEFF_H)),
+                            (int(p2.real * COEFF_W), int(p2.imag * COEFF_H)),
+                            1,
+                        )
+                elif cmd == "INIT":
+                    cmd_queue.put(("CLEAR", None))
+
+        except queue.Empty:
+            pass
 
         pygame.display.flip()
-        wait_for_key()
-        clock.tick(60)
+        clock.tick(fps)
 
     pygame.quit()
-    return 0
+    logger.info("Pygame visualization ended.")
+    sys.exit()
+
+
+def game_loop(cmd_queue: queue.Queue, event_queue: queue.Queue, data: list[complex]):
+    running = True
+
+    # Initialize game state here
+    for i in range(len(data)):
+        p1 = data[i]
+        p2 = data[(i + 1) % len(data)]
+        color = (200, 200, 200)
+        cmd_queue.put(("MAP", (p1, p2)))
+    cmd_queue.put(("INIT", None))
+
+    # Getting through all points
+    points = iter(data)
+
+    while running:
+        try:
+            while True:
+                event = event_queue.get_nowait()
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
+
+        except queue.Empty:
+            pass
+
+        cmd_queue.put(("CLEAR", None))
+
+        try:
+            point = next(points)
+            color = get_random_color()
+            cmd_queue.put(("POINT", (point, color, 5)))
+        except StopIteration:
+            pass
+
+        time.sleep(0.016)  # Simulate ~60 FPS
+
+
+def part2():
+    data = get_input_data()  # noqa
+    data = parse_data(data)  # noqa
+
+    logger.info("Initializing base matrix...")
+    max_x, max_y, base_matrix = init_matrix(data)
+    logger.debug("Base matrix initialized")
+
+    cmd_queue: queue.Queue = queue.Queue()
+    event_queue: queue.Queue = queue.Queue()
+
+    game_thread = threading.Thread(
+        target=game_loop, args=(cmd_queue, event_queue, data)
+    )
+    game_thread.start()
+
+    try:
+        pygame_loop(
+            cmd_queue,
+            event_queue,
+            max_x,
+            max_y,
+            title="Advent of Code 2025 - Day 9 Visualization",
+        )
+    except KeyboardInterrupt:
+        logger.info("KeyboardInterrupt received, quitting...")
+        event_queue.put(pygame.event.Event(pygame.QUIT))
+        game_thread.join()
