@@ -161,13 +161,6 @@ def pygame_loop(
 
     bg_color = (25, 25, 25)
 
-    font_cache = {}
-
-    def get_font(size: int) -> pygame.font.Font:
-        if size not in font_cache:
-            font_cache[size] = pygame.font.SysFont("Arial", size)
-        return font_cache[size]
-
     running = True
     map: list[tuple[complex, complex]] = []
 
@@ -250,6 +243,8 @@ def pygame_loop(
 
 def game_loop(cmd_queue: queue.Queue, event_queue: queue.Queue, data: list[complex]):
     running = True
+    paused = True
+    step_mode = True
 
     # Initialize game state here
     for i in range(len(data)):
@@ -270,9 +265,18 @@ def game_loop(cmd_queue: queue.Queue, event_queue: queue.Queue, data: list[compl
                     running = False
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     running = False
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    paused = not paused
+                    step_mode = not step_mode
+                elif step_mode and event.type == pygame.KEYDOWN:
+                    paused = False
 
         except queue.Empty:
             pass
+
+        if step_mode and paused:
+            time.sleep(0.016)
+            continue
 
         cmd_queue.put(("CLEAR", None))
 
@@ -283,7 +287,8 @@ def game_loop(cmd_queue: queue.Queue, event_queue: queue.Queue, data: list[compl
         except StopIteration:
             pass
 
-        time.sleep(0.016)  # Simulate ~60 FPS
+        time.sleep(0.016)
+        paused = True
 
 
 def part2():
