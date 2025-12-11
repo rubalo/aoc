@@ -8,7 +8,7 @@ import random
 import sys
 import threading
 import time
-from typing import LiteralString
+from typing import Iterator, LiteralString
 
 import pygame
 
@@ -24,6 +24,8 @@ Color = {
     "blue": (0, 0, 255),
     "yellow": (255, 255, 0),
 }
+DEFAULT_COLOR = (200, 200, 200)
+BG_COLOR = (25, 25, 25)
 
 
 def get_random_color():
@@ -86,28 +88,6 @@ def compute_surfaces(data: list[complex]) -> tuple[complex, complex, int]:
 Vector = tuple[complex, complex]
 
 
-def init_matrix(data: list[complex]) -> tuple[int, int, list[Vector]]:
-    logger.debug(f"Number of data points: {len(data)}")
-
-    vectors = []
-    max_x = 0
-    max_y = 0
-
-    for i in range(len(data) - 1):
-        p1 = data[i]
-        p2 = data[i + 1]
-        t_max_x = int(max(p1.real, p2.real))
-        t_max_y = int(max(p1.imag, p2.imag))
-        logger.debug(f"Line from {p1} to {p2}")
-        vectors.append((p1, p2))
-        if t_max_x > max_x:
-            max_x = t_max_x
-        if t_max_y > max_y:
-            max_y = t_max_y
-
-    return max_x, max_y, vectors
-
-
 def part1() -> int:
     data = get_input_data()  # noqa
     data = parse_data(data)  # noqa
@@ -115,51 +95,37 @@ def part1() -> int:
     return max_surface
 
 
-def get_rectangle(
-    p1: complex,
-    p2: complex,
-) -> tuple[complex, complex, complex, complex]:
-    """Return the rectangle defined by p1 and p2"""
-    top_left = complex(min(p1.real, p2.real), min(p1.imag, p2.imag))
-    top_right = complex(max(p1.real, p2.real), min(p1.imag, p2.imag))
-    bottom_left = complex(min(p1.real, p2.real), max(p1.imag, p2.imag))
-    bottom_right = complex(max(p1.real, p2.real), max(p1.imag, p2.imag))
+def pygame_init(
+    title: str, width: int, height: int
+) -> tuple[float, float, pygame.Surface]:
+    logger.info("Starting Pygame visualization...")
+    pygame.init()
+    pygame.key.set_repeat(300, 40)
+    pygame.display.set_caption(title)
 
-    return top_left, top_right, bottom_left, bottom_right
+    info = pygame.display.Info()
+    SCREEN_W, SCREEN_H = info.current_w, info.current_h
+    WIN_W = SCREEN_W // 2
+    WIN_H = SCREEN_H // 2
+    COEFF_W = WIN_W / (width + 2)
+    COEFF_H = WIN_H / (height + 2)
 
+    screen = pygame.display.set_mode((WIN_W, WIN_H))
 
-def ccw(a: complex, b: complex, c: complex) -> bool:
-    return (c.imag - a.imag) * (b.real - a.real) > (b.imag - a.imag) * (c.real - a.real)
-
-
-DEFAULT_COLOR = (200, 200, 200)
+    return COEFF_W, COEFF_H, screen
 
 
 def pygame_loop(
     cmd_queue: queue.Queue,
     event_queue: queue.Queue,
-    width: int,
-    height: int,
-    title: str,
+    width: int = 800,
+    height: int = 600,
+    title: str = "Pygame Visualization",
     fps: int = 60,
 ):
-    logger.info("Starting Pygame visualization...")
-    pygame.init()
-    pygame.key.set_repeat(300, 40)
-    pygame.display.set_caption(title)
     clock = pygame.time.Clock()
-
-    # ----- WINDOW = HALF THE SCREEN -----
-    info = pygame.display.Info()
-    SCREEN_W, SCREEN_H = info.current_w, info.current_h
-
-    WIN_W = SCREEN_W // 2
-    WIN_H = SCREEN_H // 2
-    COEFF_W = WIN_W / (width + 2)
-    COEFF_H = WIN_H / (height + 2)
-    screen = pygame.display.set_mode((WIN_W, WIN_H))
-
-    bg_color = (25, 25, 25)
+    logger.info("Initializing Pygame...")
+    COEFF_W, COEFF_H, screen = pygame_init(title, width, height)
 
     running = True
     map: list[tuple[complex, complex]] = []
@@ -170,10 +136,17 @@ def pygame_loop(
                 logger.debug("QUIT event received in Pygame loop")
                 running = False
                 event_queue.put(event)
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                logger.debug("ESCAPE key pressed, quitting Pygame loop")
-                running = False
-                event_queue.put(event)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    logger.debug("ESCAPE key pressed, quitting Pygame loop")
+                    running = False
+                    event_queue.put(pygame.event.Event(pygame.QUIT))
+                elif event.key == pygame.K_SPACE:
+                    logger.debug("SPACE key pressed, toggling step mode")
+                    event_queue.put(pygame.event.Event(pygame.USEREVENT + 1))
+                else:
+                    logger.debug(f"Key {event.key} pressed, forwarding event")
+                    event_queue.put(pygame.event.Event(pygame.USEREVENT + 2))
             else:  # Forward other events to the event queue
                 event_queue.put(event)
 
@@ -209,8 +182,8 @@ def pygame_loop(
                         [
                             (int(p1.real * COEFF_W), int(p1.imag * COEFF_H)),
                             (int(p2.real * COEFF_W), int(p2.imag * COEFF_H)),
-                            (int(p4.real * COEFF_W), int(p4.imag * COEFF_H)),
                             (int(p3.real * COEFF_W), int(p3.imag * COEFF_H)),
+                            (int(p4.real * COEFF_W), int(p4.imag * COEFF_H)),
                         ],
                         width,
                     )
@@ -218,7 +191,7 @@ def pygame_loop(
                     p1, p2 = data
                     map.append((p1, p2))
                 elif cmd == "CLEAR":
-                    screen.fill(bg_color)
+                    screen.fill(BG_COLOR)
                     for p1, p2 in map:
                         pygame.draw.line(
                             screen,
@@ -229,6 +202,7 @@ def pygame_loop(
                         )
                 elif cmd == "INIT":
                     cmd_queue.put(("CLEAR", None))
+                    screen.fill(BG_COLOR)
 
         except queue.Empty:
             pass
@@ -241,21 +215,46 @@ def pygame_loop(
     sys.exit()
 
 
-def game_loop(cmd_queue: queue.Queue, event_queue: queue.Queue, data: list[complex]):
-    running = True
-    paused = True
-    step_mode = True
+def get_boundaries(data: list[complex]) -> tuple[int, int]:
+    min_x = 0
+    max_x = 0
+    min_y = 0
+    max_y = 0
+    for point in data:
+        if point.real < min_x:
+            min_x = int(point.real)
+        if point.real > max_x:
+            max_x = int(point.real)
+        if point.imag < min_y:
+            min_y = int(point.imag)
+        if point.imag > max_y:
+            max_y = int(point.imag)
+    return max_x, max_y
 
-    # Initialize game state here
+
+def build_Path(data: list[complex]) -> Iterator[Vector]:
+    """Build a path connecting all points in data"""
     for i in range(len(data)):
-        p1 = data[i]
-        p2 = data[(i + 1) % len(data)]
-        color = (200, 200, 200)
-        cmd_queue.put(("MAP", (p1, p2)))
-    cmd_queue.put(("INIT", None))
+        yield (data[i], data[(i + 1) % len(data)])
 
-    # Getting through all points
-    points = iter(data)
+
+class Phase:
+    BUILD_PATH = 0
+
+
+def game_loop(
+    cmd_queue: queue.Queue,
+    event_queue: queue.Queue,
+    data: list[complex],
+) -> None:
+    logger.info("Starting game loop...")
+    running = True
+    step_mode = False
+    step = False
+
+    # Initial phase
+    phase = Phase.BUILD_PATH
+    path_vectors = build_Path(data)
 
     while running:
         try:
@@ -263,59 +262,72 @@ def game_loop(cmd_queue: queue.Queue, event_queue: queue.Queue, data: list[compl
                 event = event_queue.get_nowait()
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    running = False
-                elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    paused = not paused
+                    logger.debug("QUIT event received in game loop")
+                    sys.exit()
+                elif event.type == pygame.USEREVENT + 1:
+                    logger.debug("Toggle step mode event received")
                     step_mode = not step_mode
-                elif step_mode and event.type == pygame.KEYDOWN:
-                    paused = False
+                elif step_mode and event.type == pygame.USEREVENT + 2:
+                    logger.debug("Step event received")
+                    step = True
 
         except queue.Empty:
             pass
 
-        if step_mode and paused:
-            time.sleep(0.016)
+        if step_mode and not step:
+            time.sleep(0.1)
             continue
 
-        cmd_queue.put(("CLEAR", None))
+        # PHASE: BUILD PATH
+        if phase == Phase.BUILD_PATH:
+            try:
+                vector = next(path_vectors)
+                cmd_queue.put(("LINE", (vector[0], vector[1], get_random_color(), 2)))
+            except StopIteration:
+                phase = None  # End of phases
 
-        try:
-            point = next(points)
-            color = get_random_color()
-            cmd_queue.put(("POINT", (point, color, 5)))
-        except StopIteration:
-            pass
+        time.sleep(0.016)  # Simulate some processing delay
+        step = False
 
-        time.sleep(0.016)
-        paused = True
+    return None
 
 
 def part2():
     data = get_input_data()  # noqa
     data = parse_data(data)  # noqa
-
-    logger.info("Initializing base matrix...")
-    max_x, max_y, base_matrix = init_matrix(data)
-    logger.debug("Base matrix initialized")
+    result = 0
 
     cmd_queue: queue.Queue = queue.Queue()
     event_queue: queue.Queue = queue.Queue()
 
-    game_thread = threading.Thread(
-        target=game_loop, args=(cmd_queue, event_queue, data)
-    )
-    game_thread.start()
+    # Is visualization enabled?
+    if "-v" in sys.argv:
+        logger.info("Visualization enabled")
 
-    try:
-        pygame_loop(
-            cmd_queue,
-            event_queue,
-            max_x,
-            max_y,
-            title="Advent of Code 2025 - Day 9 Visualization",
+        width, height = get_boundaries(data)
+
+        game_thread = threading.Thread(
+            target=game_loop, args=(cmd_queue, event_queue, data)
         )
-    except KeyboardInterrupt:
-        logger.info("KeyboardInterrupt received, quitting...")
-        event_queue.put(pygame.event.Event(pygame.QUIT))
-        game_thread.join()
+        game_thread.start()
+
+        try:
+            pygame_loop(
+                cmd_queue,
+                event_queue,
+                width,
+                height,
+                title="Advent of Code 2025 - Day 9 Visualization",
+            )
+        except KeyboardInterrupt:
+            logger.info("KeyboardInterrupt received, quitting...")
+            # Send an event to the game loop to quit
+            cmd_queue.put(("QUIT", None))
+            # Send an end event to the event queue to quit
+            event_queue.put(pygame.event.Event(pygame.QUIT))
+            game_thread.join()
+
+    else:
+        logger.info("Visualization disabled")
+        result = game_loop(cmd_queue, event_queue, data)
+    return result
