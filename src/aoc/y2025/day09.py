@@ -8,6 +8,7 @@ import random
 import sys
 import threading
 import time
+from collections import defaultdict
 from typing import Iterator, LiteralString
 
 import pygame
@@ -26,6 +27,7 @@ Color = {
 }
 DEFAULT_COLOR = (200, 200, 200)
 BG_COLOR = (25, 25, 25)
+LOG_RATIO = 1000
 
 
 def get_random_color():
@@ -97,7 +99,7 @@ def part1() -> int:
 
 def pygame_init(
     title: str, width: int, height: int
-) -> tuple[float, float, pygame.Surface]:
+) -> tuple[float, float, float, float, pygame.Surface]:
     logger.info("Starting Pygame visualization...")
     pygame.init()
     pygame.key.set_repeat(300, 40)
@@ -107,12 +109,23 @@ def pygame_init(
     SCREEN_W, SCREEN_H = info.current_w, info.current_h
     WIN_W = SCREEN_W // 2
     WIN_H = SCREEN_H // 2
-    COEFF_W = WIN_W / (width + 2)
-    COEFF_H = WIN_H / (height + 2)
 
     screen = pygame.display.set_mode((WIN_W, WIN_H))
 
-    return COEFF_W, COEFF_H, screen
+    # --- 30% margin inside the window ---
+    MARGIN_RATIO = 0.30
+
+    INSET_W = WIN_W * MARGIN_RATIO / 2
+    INSET_H = WIN_H * MARGIN_RATIO / 2
+
+    DRAW_W = WIN_W * (1 - MARGIN_RATIO)
+    DRAW_H = WIN_H * (1 - MARGIN_RATIO)
+
+    # --- scaling factors for your grid ---
+    COEFF_W = DRAW_W / width
+    COEFF_H = DRAW_H / height
+
+    return COEFF_W, COEFF_H, INSET_W, INSET_H, screen
 
 
 def pygame_loop(
@@ -125,7 +138,7 @@ def pygame_loop(
 ):
     clock = pygame.time.Clock()
     logger.info("Initializing Pygame...")
-    COEFF_W, COEFF_H, screen = pygame_init(title, width, height)
+    COEFF_W, COEFF_H, INSET_W, INSET_H, screen = pygame_init(title, width, height)
 
     running = True
     map: list[tuple[complex, complex]] = []
@@ -162,7 +175,10 @@ def pygame_loop(
                     pygame.draw.circle(
                         screen,
                         color,
-                        (int(point.real * COEFF_W), int(point.imag * COEFF_H)),
+                        (
+                            int(INSET_W + point.real * COEFF_W),
+                            int(INSET_H + point.imag * COEFF_H),
+                        ),
                         size,
                     )
                 elif cmd == "LINE":
@@ -170,8 +186,14 @@ def pygame_loop(
                     pygame.draw.line(
                         screen,
                         color,
-                        (int(start.real * COEFF_W), int(start.imag * COEFF_H)),
-                        (int(end.real * COEFF_W), int(end.imag * COEFF_H)),
+                        (
+                            int(INSET_W + start.real * COEFF_W),
+                            int(INSET_H + start.imag * COEFF_H),
+                        ),
+                        (
+                            int(INSET_W + end.real * COEFF_W),
+                            int(INSET_H + end.imag * COEFF_H),
+                        ),
                         width,
                     )
                 elif cmd == "RECTANGLE":
@@ -180,10 +202,22 @@ def pygame_loop(
                         screen,
                         color,
                         [
-                            (int(p1.real * COEFF_W), int(p1.imag * COEFF_H)),
-                            (int(p2.real * COEFF_W), int(p2.imag * COEFF_H)),
-                            (int(p3.real * COEFF_W), int(p3.imag * COEFF_H)),
-                            (int(p4.real * COEFF_W), int(p4.imag * COEFF_H)),
+                            (
+                                int(INSET_W + p1.real * COEFF_W),
+                                int(INSET_H + p1.imag * COEFF_H),
+                            ),
+                            (
+                                int(INSET_W + p2.real * COEFF_W),
+                                int(INSET_H + p2.imag * COEFF_H),
+                            ),
+                            (
+                                int(INSET_W + p3.real * COEFF_W),
+                                int(INSET_H + p3.imag * COEFF_H),
+                            ),
+                            (
+                                int(INSET_W + p4.real * COEFF_W),
+                                int(INSET_H + p4.imag * COEFF_H),
+                            ),
                         ],
                         width,
                     )
@@ -196,8 +230,14 @@ def pygame_loop(
                         pygame.draw.line(
                             screen,
                             DEFAULT_COLOR,
-                            (int(p1.real * COEFF_W), int(p1.imag * COEFF_H)),
-                            (int(p2.real * COEFF_W), int(p2.imag * COEFF_H)),
+                            (
+                                int(INSET_W + p1.real * COEFF_W),
+                                int(INSET_H + p1.imag * COEFF_H),
+                            ),
+                            (
+                                int(INSET_W + p2.real * COEFF_W),
+                                int(INSET_H + p2.imag * COEFF_H),
+                            ),
                             1,
                         )
                 elif cmd == "INIT":
@@ -240,21 +280,119 @@ def build_Path(data: list[complex]) -> Iterator[Vector]:
 
 class Phase:
     BUILD_PATH = 0
+    FIND_DIAGONALS = 1
+    FIND_RECTANGLES = 2
+
+
+def game_data(
+    data: list[complex],
+) -> tuple[dict[int, list[Vector]], dict[int, list[Vector]]]:
+    """Build game data structures from input data
+    Returns horizontal and vertical v_vectors
+    """
+    h_vectors: defaultdict[int, list[Vector]] = defaultdict(list)
+    v_vectors: defaultdict[int, list[Vector]] = defaultdict(list)
+
+    for i in range(len(data)):
+        p1 = data[i]
+        p2 = data[(i + 1) % len(data)]
+
+        if p1.real == p2.real:
+            # Vertical line
+            v_vectors[int(p1.real)].append((p1, p2))
+        elif p1.imag == p2.imag:
+            # Horizontal line
+            h_vectors[int(p1.imag)].append((p1, p2))
+        else:
+            logger.warning(f"Non-axis-aligned line between {p1} and {p2}, skipping")
+
+    return dict(h_vectors), dict(v_vectors)
+
+
+def point_in_segment(p: complex, a: complex, b: complex) -> bool:
+    """Check if point p is on the segment ab"""
+    cross_product = (p.imag - a.imag) * (b.real - a.real) - (p.real - a.real) * (
+        b.imag - a.imag
+    )
+    if abs(cross_product) > 1e-6:
+        return False  # Not collinear
+
+    dot_product = (p.real - a.real) * (b.real - a.real) + (p.imag - a.imag) * (
+        b.imag - a.imag
+    )
+    if dot_product < 0:
+        return False  # p is before a
+
+    squared_length_ab = (b.real - a.real) ** 2 + (b.imag - a.imag) ** 2
+    if dot_product > squared_length_ab:
+        return False  # p is after b
+
+    return True
+
+
+def point_in_path(p: complex, path: list[complex]) -> bool:
+    """Determine if the point in INSIDE, OUTSIDE or ON the path defined by the vectors"""
+    n = len(path)
+    if n < 3:
+        return False  # A path with less than 3 segments cannot enclose an area
+
+    # Test if point is on any segment
+    for i in range(n):
+        a = path[i]
+        b = path[(i + 1) % n]
+        if point_in_segment(p, a, b):
+            return True
+
+    # Ray-casting algorithm to determine if point is inside the polygon
+    inside = False
+    x, y = p.real, p.imag
+
+    for i in range(n):
+        a = path[i]
+        b = path[(i + 1) % n]
+
+        ax, ay = a.real, a.imag
+        bx, by = b.real, b.imag
+
+        if (ay > y) != (by > y):
+            slope = (bx - ax) * (y - ay) / (by - ay) + ax
+            if x < slope:
+                inside = not inside
+
+    return inside
+
+
+def get_rectangle_corners(
+    p1: complex, p2: complex
+) -> tuple[complex, complex, complex, complex]:
+    """Given two opposite corners of a rectangle, return all four corners"""
+    return (
+        complex(p1.real, p1.imag),
+        complex(p2.real, p1.imag),
+        complex(p2.real, p2.imag),
+        complex(p1.real, p2.imag),
+    )
 
 
 def game_loop(
     cmd_queue: queue.Queue,
     event_queue: queue.Queue,
     data: list[complex],
-) -> None:
+) -> int:
     logger.info("Starting game loop...")
     running = True
     step_mode = False
     step = False
 
-    # Initial phase
+    # Build phase
     phase = Phase.BUILD_PATH
     path_vectors = build_Path(data)
+
+    # Find diagonals phase
+    phase2_iter = find_valid_diagonals(data)
+    valid_pairs: list[tuple[complex, complex]] = []
+    max_area = 0
+    max_rectangle = (0 + 0j, 0 + 0j, 0 + 0j, 0 + 0j)
 
     while running:
         try:
@@ -275,21 +413,211 @@ def game_loop(
             pass
 
         if step_mode and not step:
-            time.sleep(0.1)
+            time.sleep(0.01)
             continue
 
         # PHASE: BUILD PATH
         if phase == Phase.BUILD_PATH:
-            try:
-                vector = next(path_vectors)
-                cmd_queue.put(("LINE", (vector[0], vector[1], get_random_color(), 2)))
-            except StopIteration:
-                phase = None  # End of phases
+            logger.info("Building path...")
+            for vector in path_vectors:
+                cmd_queue.put(("MAP", vector))
+                cmd_queue.put(("LINE", (vector[0], vector[1], DEFAULT_COLOR, 1)))
+            phase = Phase.FIND_DIAGONALS
+            logger.info("Finding valid diagonals...")
 
-        time.sleep(0.016)  # Simulate some processing delay
+        elif phase == Phase.FIND_DIAGONALS:
+            cmd_queue.put(("CLEAR", None))
+            cpt = 0
+            n = len(data) * (len(data) - 1) // 2
+            for point1, point2, valid in phase2_iter:
+                logger.debug(f"Processing diagonal ({point1}, {point2}), valid={valid}")
+                cpt += 1
+                if cpt % LOG_RATIO == 0:
+                    logger.info(f"Processed {cpt}/{n} diagonals...")
+
+                if valid:
+                    cmd_queue.put(("CLEAR", None))
+                    cmd_queue.put(
+                        (
+                            "LINE",
+                            (point1, point2, Color["green"], 2),
+                        )
+                    )
+                    valid_pairs.append((point1, point2))
+                else:
+                    cmd_queue.put(
+                        (
+                            "LINE",
+                            (point1, point2, Color["red"], 2),
+                        )
+                    )
+            phase = Phase.FIND_RECTANGLES
+            logger.info("No more diagonals to process.")
+        elif phase == Phase.FIND_RECTANGLES:
+            logger.info("Finding maximum rectangles from valid diagonals...")
+            cpt = 0
+            n = len(valid_pairs)
+            for point1, point2 in valid_pairs:
+                logger.debug(
+                    f"Checking rectangle {cpt + 1}/{n} with corners {point1}, {point2}"
+                )
+                cpt += 1
+                if cpt % LOG_RATIO == 0:
+                    logger.info(f"Processed {cpt}/{n} rectangles...")
+
+                cmd_queue.put(("CLEAR", None))
+                mp1, mp2, mp3, mp4 = max_rectangle
+                cmd_queue.put(("RECTANGLE", (mp1, mp2, mp3, mp4, Color["yellow"], 2)))
+
+                p1, p2, p3, p4 = get_rectangle_corners(point1, point2)
+                logger.debug(f"Checking rectangle corners: {p1}, {p2}, {p3}, {p4}")
+
+                cmd_queue.put(
+                    (
+                        "POINT",
+                        (p1, Color["blue"], 5),
+                    )
+                )
+                cmd_queue.put(
+                    (
+                        "POINT",
+                        (p3, Color["blue"], 5),
+                    )
+                )
+
+                area = (abs(point2.real - point1.real) + 1) * (
+                    abs(point2.imag - point1.imag) + 1
+                )
+                logger.debug(f"Rectangle area: {area}")
+
+                if area < max_area:
+                    logger.debug(
+                        f"Rectangle area {area} less than max area {max_area}, skipping rectangle"
+                    )
+                    continue
+
+                for v in [(p1, p2), (p2, p3), (p3, p4), (p4, p1)]:
+                    if vector_crosses_path(v[0], v[1], data):
+                        logger.debug(
+                            f"Rectangle edge {v[0]}->{v[1]} crosses the path, skipping rectangle"
+                        )
+                        break
+
+                if point_in_path(p2, data) and point_in_path(p4, data):
+                    cmd_queue.put(
+                        (
+                            "RECTANGLE",
+                            (p1, p2, p3, p4, Color["green"], 2),
+                        )
+                    )
+                    if area > max_area:
+                        logger.debug(
+                            f"New max rectangle found with area {area}, ({p1}, {p2}, {p3}, {p4})"
+                        )
+                        max_area = area
+                        max_rectangle = (p1, p2, p3, p4)
+                else:
+                    cmd_queue.put(
+                        (
+                            "RECTANGLE",
+                            (p1, p2, p3, p4, Color["red"], 2),
+                        )
+                    )
+                time.sleep(0.01)  # Simulate some processing delay
+
+            phase = None  # Empty
+            logger.info("No more rectangles to process.")
+            logger.info(
+                f"Max rectangle area found: {max_area} with corners {max_rectangle}"
+            )
+
+        else:
+            logger.info("No more phases to process, exiting game loop.")
+            logger.info(
+                f"Max rectangle area found: {max_area} with corners {max_rectangle}"
+            )
+            running = False
+
+        time.sleep(0.01)  # Simulate some processing delay
         step = False
 
-    return None
+    return max_area
+
+
+def vector_crosses_path(p1: complex, p2: complex, path: list[complex]) -> bool:
+    """Return True if segment p1->p2 properly crosses the path.
+
+    Rules:
+    - Touching a vertex or sharing endpoints is NOT a crossing.
+    - Colinear overlaps (vector lies on a path segment) are NOT crossings.
+    - Only proper interior intersections count.
+    """
+
+    def on_segment(a: complex, b: complex, p: complex) -> bool:
+        """Check if point p lies on segment a-b (inclusive)."""
+        # Colinearity check via cross product == 0
+        cross = (b.real - a.real) * (p.imag - a.imag) - (b.imag - a.imag) * (
+            p.real - a.real
+        )
+        if cross != 0:
+            return False
+        # Within bounding box
+        return min(a.real, b.real) <= p.real <= max(a.real, b.real) and min(
+            a.imag, b.imag
+        ) <= p.imag <= max(a.imag, b.imag)
+
+    for i in range(len(path)):
+        a = path[i]
+        b = path[(i + 1) % len(path)]
+
+        # Skip if the segment shares an endpoint with the vector
+        if p1 == a or p1 == b or p2 == a or p2 == b:
+            continue
+
+        # If segments are colinear and overlap, treat as valid (not crossing)
+        # Check if either vector endpoint lies on the path segment
+        if on_segment(a, b, p1) or on_segment(a, b, p2):
+            continue
+
+        # Check for intersection between segments p1->p2 and a->b
+        denom = (b.imag - a.imag) * (p2.real - p1.real) - (b.real - a.real) * (
+            p2.imag - p1.imag
+        )
+        if denom == 0:
+            # Parallel (or colinear but already handled by on_segment)
+            continue
+
+        ua = (
+            (b.real - a.real) * (p1.imag - a.imag)
+            - (b.imag - a.imag) * (p1.real - a.real)
+        ) / denom
+        ub = (
+            (p2.real - p1.real) * (p1.imag - a.imag)
+            - (p2.imag - p1.imag) * (p1.real - a.real)
+        ) / denom
+
+        # Proper interior intersection
+        if 0 < ua < 1 and 0 < ub < 1:
+            return True
+
+    return False
+
+
+def find_valid_diagonals(
+    data: list[complex],
+) -> Iterator[tuple[complex, complex, bool]]:
+    """
+    Check if a diagonal is valid.
+    For every pair of point, check if the vector made by the two points is crossing the path
+    """
+
+    for i in range(len(data) - 1):
+        for j in range(i + 1, len(data)):
+            p1 = data[i]
+            p2 = data[j]
+
+            invalid = vector_crosses_path(p1, p2, data)
+            yield (p1, p2, not invalid)
 
 
 def part2():
