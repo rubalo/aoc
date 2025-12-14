@@ -285,20 +285,17 @@ def build_Path(data: list[complex]) -> Iterator[Vector]:
 class Phase:
     WARNING_UP = auto()
     BUILD_PATH = auto()
-    FIND_HORIZONTAL_SEGMENTS = auto()
-    FIND_VERTICAL_SEGMENTS = auto()
-    FIND_RECTANGLES = auto()
+    BUILD_BOUNDARIES = auto()
+    RUN = auto()
     END = auto()
 
 
 def game_data(
     data: list[complex],
-) -> tuple[dict[int, list[Vector]], dict[int, list[Vector]]]:
+) -> None:
     """Build game data structures from input data
     Returns horizontal and vertical v_vectors
     """
-    h_vectors: defaultdict[int, list[Vector]] = defaultdict(list)
-    v_vectors: defaultdict[int, list[Vector]] = defaultdict(list)
 
     for i in range(len(data)):
         p1 = data[i]
@@ -306,14 +303,12 @@ def game_data(
 
         if p1.real == p2.real:
             # Vertical line
-            v_vectors[int(p1.real)].append((p1, p2))
+            V_VECTORS[int(p1.real)].append((p1, p2))
         elif p1.imag == p2.imag:
             # Horizontal line
-            h_vectors[int(p1.imag)].append((p1, p2))
+            H_VECTORS[int(p1.imag)].append((p1, p2))
         else:
             logger.warning(f"Non-axis-aligned line between {p1} and {p2}, skipping")
-
-    return dict(h_vectors), dict(v_vectors)
 
 
 class PointPosition(Enum):
@@ -368,8 +363,8 @@ def raycast_right_axis(point: complex, path: list[complex]) -> list[int]:
         if ay > by:
             ay, by = by, ay
 
-        # half open interval [ay, by]
-        if ay <= py <= by and ax >= px:
+        # half open interval [ay, by[
+        if ay <= py < by and ax >= px:
             intersections.add(int(ax))
 
     logger.debug(
@@ -380,9 +375,10 @@ def raycast_right_axis(point: complex, path: list[complex]) -> list[int]:
 
 def raycast_up_axis(point: complex, path: list[complex]) -> list[int]:
     """Count how many times a raycast upward intersects the polygon edges"""
+    logger.debug(f"Raycasting up from point {point}")
     px, py = point.real, point.imag
     n = len(path)
-    intersections = []
+    intersections = set()
 
     for i in range(n):
         a = path[i]
@@ -398,28 +394,37 @@ def raycast_up_axis(point: complex, path: list[complex]) -> list[int]:
         if ax > bx:
             ax, bx = bx, ax
 
-        # half open interval [ax, bx]
-        if ax <= px <= bx and py <= by:
-            intersections.append(int(by))
+        # half open interval [ax, bx[
+        if ax <= px < bx and ay >= py:
+            intersections.add(int(ay))
 
     logger.debug(
-        f"Raycast down from point {point} intersected {len(intersections)} times: {intersections}"
+        f"Raycast up from point {point} intersected {len(intersections)} times: {intersections}"
     )
-    return intersections
+    return list(intersections)
 
 
 def get_vertical_boudaries(
     data: list[complex],
     x: int,
     step: float = 0.5,
-) -> list[tuple[complex, complex]]:
+) -> list[tuple[int, int]]:
     """Compute horizontal segment at width x"""
-    intersections = raycast_up_axis(complex(x, 0), data)
-    intersections = sorted(intersections)
     boundaries = []
+
+    intersections = raycast_up_axis(complex(x, 0), data)
+    if not V_VECTORS.keys():
+        raise ValueError("Vertical vectors not built yet")
+    vectors = V_VECTORS.get(x, [])
+
+    for v_start, v_end in vectors:
+        intersections.append(int(v_start.imag))
+        intersections.append(int(v_end.imag))
 
     if not intersections:
         return boundaries
+
+    intersections = sorted(list(set(intersections)))
 
     start = intersections.pop(0)
 
@@ -445,13 +450,22 @@ def get_horizontal_boudaries(
     step: float = 0.5,
 ) -> list[tuple[int, int]]:
     """Compute horizontal segment at height y"""
+    boundaries = []
 
     intersections = raycast_right_axis(complex(0, y), data)
-    intersections = sorted(intersections)
-    boundaries = []
+
+    if not H_VECTORS.keys():
+        raise ValueError("Horizontal vectors not built yet")
+    vectors = H_VECTORS.get(y, [])
+
+    for v_start, v_end in vectors:
+        intersections.append(int(v_start.real))
+        intersections.append(int(v_end.real))
 
     if not intersections:
         return boundaries
+
+    intersections = sorted(list(set(intersections)))
 
     start = intersections.pop(0)
 
@@ -508,67 +522,79 @@ def point_position_on_vertical_axis(
 
 def longest_horizontal_segment(
     point: complex,
-    path: list[complex],
-    step: float = 1,  # Avoid to consecutive vertical vectors
 ) -> tuple[complex, complex] | None:
     """Find the longest horizontal segment (left, right) from the point along y axis that stays inside the polygon or on the get_boundaries"""
+
+    if not H_BOUNDARIES.keys():
+        raise ValueError("Horizontal boundaries not built yet")
+
     x, y = point.real, point.imag
-
-    def in_or_on(xt: float) -> bool:
-        pos = point_position_on_horizontal_axis(complex(xt, y), path)
-        return pos in (PointPosition.INSIDE, PointPosition.ON_EDGE)
-
-    if not in_or_on(x):
-        return None
-
-    # Expand left
-    logger.debug(f"Finding left boundary from x={x}, y={y}")
-    left_x = x
-    while in_or_on(left_x - step):
-        left_x -= step
-
-    # Expand right
-    logger.debug(f"Finding right boundary from x={x}, y={y}")
-    right_x = x
-    while in_or_on(right_x + step):
-        right_x += step
-
-    return complex(left_x, y), complex(right_x, y)
+    for start, end in H_BOUNDARIES.get(int(y), []):
+        if start <= x <= end:
+            return (complex(start, y), complex(end, y))
+    return None
 
 
 def longest_vertical_segment(
     point: complex,
-    path: list[complex],
-    step: float = 0.5,  # Avoid to consecutive horizontal vectors
 ) -> tuple[complex, complex] | None:
     """Find the longest vertical segment (up, down) from the point along x axis that stays inside the polygon or on the get_boundaries"""
+
+    if not V_BOUNDARIES.keys():
+        raise ValueError("Vertical boundaries not built yet")
+
     x, y = point.real, point.imag
 
-    def in_or_on(yt: float) -> bool:
-        pos = point_position_on_vertical_axis(complex(x, yt), path)
-        return pos in (PointPosition.INSIDE, PointPosition.ON_EDGE)
+    for start, end in V_BOUNDARIES.get(int(x), []):
+        if start <= y <= end:
+            return (complex(x, start), complex(x, end))
 
-    if not in_or_on(y):
-        return None
+    return None
 
-    # Expand down
-    down_y = y
-    while in_or_on(down_y - step):
-        down_y -= step
 
-    # Expand up
-    up_y = y
-    while in_or_on(up_y + step):
-        up_y += step
+def vector_is_inside_boundaries(
+    vector: Vector,
+) -> bool:
+    """Check if a vector is fully inside the boundaries"""
+    (p1, p2) = vector
+    x1, y1 = p1.real, p1.imag
+    x2, y2 = p2.real, p2.imag
 
-    return complex(x, down_y), complex(x, up_y)
+    if x1 == x2:
+        # Vertical line
+        for boundarie in V_BOUNDARIES.get(int(x1), []):
+            if boundarie[0] <= min(y1, y2) and boundarie[1] >= max(y1, y2):
+                return True
+    elif y1 == y2:
+        # Horizontal line
+        for boundarie in H_BOUNDARIES.get(int(y1), []):
+            if boundarie[0] <= min(x1, x2) and boundarie[1] >= max(x1, x2):
+                return True
+    return False
+
+
+def get_rectangle_corners(
+    a: complex, c: complex
+) -> tuple[complex, complex, complex, complex]:
+    """Given two opposite corners a and c, return all four corners of the rectangle"""
+    b = complex(c.real, a.imag)
+    d = complex(a.real, c.imag)
+    return a, b, c, d
+
+
+def get_diagonals(data: list[complex]) -> Iterator[Vector]:
+    """Generate all diagonals from the given points"""
+    n = len(data)
+    for i in range(n):
+        for j in range(i + 1, n):
+            yield (data[i], data[j])
 
 
 H_VECTORS: dict[int, list[Vector]] = defaultdict(list)
 V_VECTORS: dict[int, list[Vector]] = defaultdict(list)
 
 H_BOUNDARIES: dict[int, list[tuple[int, int]]] = defaultdict(list)
-V_BOUNDARIES: dict[int, list[tuple[complex, complex]]] = defaultdict(list)
+V_BOUNDARIES: dict[int, list[tuple[int, int]]] = defaultdict(list)
 
 
 def game_loop(
@@ -581,11 +607,13 @@ def game_loop(
     step_mode = False
     step = False
     phase = Phase.BUILD_PATH
+    game_data(data)
 
     max_area = 0
     max_rectangle = (0 + 0j, 0 + 0j, 0 + 0j, 0 + 0j)
 
-    points = iter(data)
+    points_boundaries = iter(data)
+    point_run = iter(data)
 
     while running:
         try:
@@ -631,42 +659,42 @@ def game_loop(
                     )
                 )
 
-            phase = Phase.FIND_HORIZONTAL_SEGMENTS
+            phase = Phase.BUILD_BOUNDARIES
             logger.info("Completed BUILD_PATH phase")
 
-        elif phase == Phase.FIND_HORIZONTAL_SEGMENTS:
+        elif phase == Phase.BUILD_BOUNDARIES:
             logger.info("Processing FIND_HORIZONTAL_SEGMENTS phase")
 
             try:
-                point = next(points)
+                point = next(points_boundaries)
                 logger.debug(f"Processing point {point}")
             except StopIteration:
                 logger.info("No more points to process, ending game loop")
-                phase = Phase.END
+                phase = Phase.RUN
                 continue
 
-            # logger.debug(f"Finding longest horizontal segment for point {point}")
-            # if point.real in H_BOUNDARIES.keys():
-            #     logger.debug(
-            #         f"Using cached horizontal boundaries for y={int(point.imag)}"
-            #     )
-            # else:
-            #     logger.debug(f"Computing horizontal boundaries for y={int(point.imag)}")
-            #     H_BOUNDARIES[int(point.imag)] = get_horizontal_boudaries(
-            #         data, int(point.imag)
-            #     )
-            # for x, y in H_BOUNDARIES[int(point.imag)]:
-            #     cmd_queue.put(
-            #         (
-            #             "LINE",
-            #             (
-            #                 complex(x, point.imag),
-            #                 complex(y, point.imag),
-            #                 Color["blue"],
-            #                 2,
-            #             ),
-            #         )
-            #     )
+            logger.debug(f"Finding longest horizontal segment for point {point}")
+            if point.real in H_BOUNDARIES.keys():
+                logger.debug(
+                    f"Using cached horizontal boundaries for y={int(point.imag)}"
+                )
+            else:
+                logger.debug(f"Computing horizontal boundaries for y={int(point.imag)}")
+                H_BOUNDARIES[int(point.imag)] = get_horizontal_boudaries(
+                    data, int(point.imag)
+                )
+            for x, y in H_BOUNDARIES[int(point.imag)]:
+                cmd_queue.put(
+                    (
+                        "LINE",
+                        (
+                            complex(x, point.imag),
+                            complex(y, point.imag),
+                            Color["blue"],
+                            2,
+                        ),
+                    )
+                )
 
             if point.imag in V_BOUNDARIES.keys():
                 logger.debug(
@@ -690,6 +718,81 @@ def game_loop(
                     )
                 )
 
+        elif phase == Phase.RUN:
+            cmd_queue.put(("CLEAR", None))
+
+            cmd_queue.put(("RECTANGLE", (*max_rectangle, Color["green"], 3)))
+
+            try:
+                a = next(point_run)
+            except StopIteration:
+                logger.info(
+                    "No more points to process, moving to FIND_VERTICAL_SEGMENTS"
+                )
+                phase = Phase.END
+                continue
+
+            for c in data:
+                cmd_queue.put(
+                    (
+                        "LINE",
+                        (
+                            a,
+                            c,
+                            Color["green"],
+                            2,
+                        ),
+                    )
+                )
+
+                a, b, c, d = get_rectangle_corners(a, c)
+
+                width = abs(c.real - a.real) + 1
+                height = abs(c.imag - a.imag) + 1
+                area = width * height
+
+                if area <= max_area:
+                    continue
+
+                valid = True
+                for vector in [(a, b), (b, c), (c, d), (d, a)]:
+                    if not vector_is_inside_boundaries(vector):
+                        valid = False
+                        cmd_queue.put(
+                            (
+                                "LINE",
+                                (
+                                    vector[0],
+                                    vector[1],
+                                    Color["red"],
+                                    2,
+                                ),
+                            )
+                        )
+                        break
+                    else:
+                        cmd_queue.put(
+                            (
+                                "LINE",
+                                (
+                                    vector[0],
+                                    vector[1],
+                                    Color["yellow"],
+                                    2,
+                                ),
+                            )
+                        )
+                if valid:
+                    if area > max_area:
+                        max_area = area
+                        max_rectangle = (a, b, c, d)
+                        logger.info(
+                            f"New max area {max_area} with corners {max_rectangle}"
+                        )
+                        cmd_queue.put(
+                            ("RECTANGLE", (*max_rectangle, Color["white"], 3))
+                        )
+
         elif phase == Phase.END:
             running = False
             logger.info("Reached END phase, exiting game loop")
@@ -700,6 +803,7 @@ def game_loop(
 
     logger.info(f"Max rectangle area found: {max_area}")
     logger.info(f"Max rectangle corners: {max_rectangle}")
+    cmd_queue.put(("QUIT", None))
     return int(max_area)
 
 

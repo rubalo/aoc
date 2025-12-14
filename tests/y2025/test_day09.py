@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 from aoc.y2025.day09 import (
+    game_data,
     get_horizontal_boudaries,
     get_vertical_boudaries,
     part1,
@@ -43,6 +42,8 @@ def test_get_horizontal_boudaries() -> None:
         5: [(1, 10)],
         6: [],
     }
+
+    game_data(path)
 
     for level, result in expected.items():
         assert (
@@ -85,6 +86,7 @@ def test_get_vertical_boudaries() -> None:
         10: [(1, 5)],
         11: [],
     }
+    game_data(path)
 
     for level, result in expected.items():
         assert get_vertical_boudaries(path, level) == result, f"Error at level {level}"
@@ -127,10 +129,10 @@ def test_get_vertical_boudaries2() -> None:
     ]
 
     expected = {
-        0: [],
         6: [(1, 5), (7, 12)],
-        11: [],
     }
+
+    game_data(path)
 
     for level, result in expected.items():
         assert get_vertical_boudaries(path, level) == result, f"Error at level {level}"
@@ -140,6 +142,5 @@ def test_part1() -> None:
     assert part1() == 4764078684
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_part2() -> None:
     assert part2() == 1652344888
