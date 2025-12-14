@@ -92,7 +92,7 @@ def test_get_vertical_boudaries() -> None:
         assert get_vertical_boudaries(path, level) == result, f"Error at level {level}"
 
 
-def test_get_vertical_boudaries2() -> None:
+def test_get_vertical_boundaries2() -> None:
     """
     data = [
                    1
