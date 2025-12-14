@@ -564,6 +564,13 @@ def longest_vertical_segment(
     return complex(x, down_y), complex(x, up_y)
 
 
+H_VECTORS: dict[int, list[Vector]] = defaultdict(list)
+V_VECTORS: dict[int, list[Vector]] = defaultdict(list)
+
+H_BOUNDARIES: dict[int, list[tuple[int, int]]] = defaultdict(list)
+V_BOUNDARIES: dict[int, list[tuple[complex, complex]]] = defaultdict(list)
+
+
 def game_loop(
     cmd_queue: queue.Queue,
     event_queue: queue.Queue,
@@ -577,7 +584,6 @@ def game_loop(
 
     max_area = 0
     max_rectangle = (0 + 0j, 0 + 0j, 0 + 0j, 0 + 0j)
-    horizontal_segments: list[tuple[complex, tuple[complex, complex]]] = []
 
     points = iter(data)
 
@@ -639,21 +645,51 @@ def game_loop(
                 phase = Phase.END
                 continue
 
-            logger.debug(f"Finding longest horizontal segment for point {point}")
-            horizontal_segment = longest_horizontal_segment(point, data)
-            if horizontal_segment is not None:
+            # logger.debug(f"Finding longest horizontal segment for point {point}")
+            # if point.real in H_BOUNDARIES.keys():
+            #     logger.debug(
+            #         f"Using cached horizontal boundaries for y={int(point.imag)}"
+            #     )
+            # else:
+            #     logger.debug(f"Computing horizontal boundaries for y={int(point.imag)}")
+            #     H_BOUNDARIES[int(point.imag)] = get_horizontal_boudaries(
+            #         data, int(point.imag)
+            #     )
+            # for x, y in H_BOUNDARIES[int(point.imag)]:
+            #     cmd_queue.put(
+            #         (
+            #             "LINE",
+            #             (
+            #                 complex(x, point.imag),
+            #                 complex(y, point.imag),
+            #                 Color["blue"],
+            #                 2,
+            #             ),
+            #         )
+            #     )
+
+            if point.imag in V_BOUNDARIES.keys():
+                logger.debug(
+                    f"Using cached vertical boundaries for x={int(point.real)}"
+                )
+            else:
+                logger.debug(f"Computing vertical boundaries for x={int(point.real)}")
+                V_BOUNDARIES[int(point.real)] = get_vertical_boudaries(
+                    data, int(point.real)
+                )
+            for x, y in V_BOUNDARIES[int(point.real)]:
                 cmd_queue.put(
                     (
                         "LINE",
                         (
-                            horizontal_segment[0],
-                            horizontal_segment[1],
+                            complex(point.real, x),
+                            complex(point.real, y),
                             Color["green"],
                             2,
                         ),
                     )
                 )
-                horizontal_segments.append((point, horizontal_segment))
+
         elif phase == Phase.END:
             running = False
             logger.info("Reached END phase, exiting game loop")

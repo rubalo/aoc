@@ -90,6 +90,52 @@ def test_get_vertical_boudaries() -> None:
         assert get_vertical_boudaries(path, level) == result, f"Error at level {level}"
 
 
+def test_get_vertical_boudaries2() -> None:
+    """
+    data = [
+                   1
+         01234567890
+      0 "...........",
+      1 ".##########",
+      2 ".#........#",
+      3 ".#........#",
+      4 ".#........#",
+      5 ".########.#",
+      6 "........#.#",
+      7 ".########.#",
+      8 ".#........#",
+      9 ".#........#",
+     10 ".#....#####",
+     11 ".#....#....",
+     12 ".######....",
+                   1
+         01234567890
+
+    ]"""
+
+    path = [
+        (1 + 1j),
+        (10 + 1j),
+        (10 + 10j),
+        (6 + 10j),
+        (6 + 12j),
+        (1 + 12j),
+        (1 + 7j),
+        (8 + 7j),
+        (8 + 5j),
+        (1 + 5j),
+    ]
+
+    expected = {
+        0: [],
+        6: [(1, 5), (7, 12)],
+        11: [],
+    }
+
+    for level, result in expected.items():
+        assert get_vertical_boudaries(path, level) == result, f"Error at level {level}"
+
+
 def test_part1() -> None:
     assert part1() == 4764078684
 
