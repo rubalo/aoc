@@ -5,9 +5,89 @@ from __future__ import annotations
 import pytest
 
 from aoc.y2025.day09 import (
+    get_horizontal_boudaries,
+    get_vertical_boudaries,
     part1,
     part2,
 )
+
+
+def test_get_horizontal_boudaries() -> None:
+    """data = [
+        "...........",
+        ".####....##",
+        ".#..#....##",
+        ".#..#######",
+        ".#........#",
+        ".##########",
+        "...........",
+    ]"""
+
+    path = [
+        (1 + 1j),
+        (4 + 1j),
+        (4 + 3j),
+        (9 + 3j),
+        (9 + 1j),
+        (10 + 1j),
+        (10 + 5j),
+        (1 + 5j),
+    ]
+
+    expected = {
+        0: [],
+        1: [(1, 4), (9, 10)],
+        2: [(1, 4), (9, 10)],
+        3: [(1, 10)],
+        4: [(1, 10)],
+        5: [(1, 10)],
+        6: [],
+    }
+
+    for level, result in expected.items():
+        assert (
+            get_horizontal_boudaries(path, level) == result
+        ), f"Error at level {level}"
+
+
+def test_get_vertical_boudaries() -> None:
+    """
+    data = [
+        "...........",
+        ".####....##",
+        ".#..#....##",
+        ".#..#######",
+        ".#........#",
+        ".##########",
+        "...........",
+    ]"""
+
+    path = [
+        (1 + 1j),
+        (4 + 1j),
+        (4 + 3j),
+        (9 + 3j),
+        (9 + 1j),
+        (10 + 1j),
+        (10 + 5j),
+        (1 + 5j),
+    ]
+
+    expected = {
+        0: [],
+        1: [(1, 5)],
+        2: [(1, 5)],
+        3: [(1, 5)],
+        4: [(1, 5)],
+        5: [(3, 5)],
+        8: [(3, 5)],
+        9: [(1, 5)],
+        10: [(1, 5)],
+        11: [],
+    }
+
+    for level, result in expected.items():
+        assert get_vertical_boudaries(path, level) == result, f"Error at level {level}"
 
 
 def test_part1() -> None:

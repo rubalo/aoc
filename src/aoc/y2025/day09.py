@@ -347,12 +347,12 @@ def point_on_segment(p: complex, a: complex, b: complex, epsilon=1e-9) -> bool:
     return False
 
 
-def raycast_right_axis(point: complex, path: list[complex]) -> int:
-    """Count how many times a raycast to the right intersects the polygon edges"""
+def raycast_right_axis(point: complex, path: list[complex]) -> list[int]:
+    """Return list of itersections when raycasting right from point"""
     logger.debug(f"Raycasting right from point {point}")
     px, py = point.real, point.imag
-    count = 0
     n = len(path)
+    intersections = set()
 
     for i in range(n):
         a = path[i]
@@ -369,18 +369,20 @@ def raycast_right_axis(point: complex, path: list[complex]) -> int:
             ay, by = by, ay
 
         # half open interval [ay, by]
-        if ay <= py < by and ax >= px:
-            count += 1
+        if ay <= py <= by and ax >= px:
+            intersections.add(int(ax))
 
-    logger.debug(f"Raycast right from point {point} intersected {count} times")
-    return count
+    logger.debug(
+        f"Raycast right from point {point} intersected {len(intersections)} times: {intersections}"
+    )
+    return list(intersections)
 
 
-def raycast_up_axis(point: complex, path: list[complex]) -> int:
-    """Count how many times a raycast upwards intersects the polygon edges"""
+def raycast_up_axis(point: complex, path: list[complex]) -> list[int]:
+    """Count how many times a raycast upward intersects the polygon edges"""
     px, py = point.real, point.imag
-    count = 0
     n = len(path)
+    intersections = []
 
     for i in range(n):
         a = path[i]
@@ -397,10 +399,76 @@ def raycast_up_axis(point: complex, path: list[complex]) -> int:
             ax, bx = bx, ax
 
         # half open interval [ax, bx]
-        if ax <= px < bx and by >= py:
-            count += 1
+        if ax <= px <= bx and py <= by:
+            intersections.append(int(by))
 
-    return count
+    logger.debug(
+        f"Raycast down from point {point} intersected {len(intersections)} times: {intersections}"
+    )
+    return intersections
+
+
+def get_vertical_boudaries(
+    data: list[complex],
+    x: int,
+    step: float = 0.5,
+) -> list[tuple[complex, complex]]:
+    """Compute horizontal segment at width x"""
+    intersections = raycast_up_axis(complex(x, 0), data)
+    intersections = sorted(intersections)
+    boundaries = []
+
+    if not intersections:
+        return boundaries
+
+    start = intersections.pop(0)
+
+    while len(intersections) > 0:
+        end = intersections.pop(0)
+        if point_position_on_vertical_axis(complex(x, end + step), data) in (
+            PointPosition.ON_EDGE,
+            PointPosition.INSIDE,
+        ):
+            # Continue the interval
+            continue
+        else:
+            boundaries.append((start, end))
+            if intersections:
+                start = intersections.pop(0)
+
+    return boundaries
+
+
+def get_horizontal_boudaries(
+    data: list[complex],
+    y: int,
+    step: float = 0.5,
+) -> list[tuple[int, int]]:
+    """Compute horizontal segment at height y"""
+
+    intersections = raycast_right_axis(complex(0, y), data)
+    intersections = sorted(intersections)
+    boundaries = []
+
+    if not intersections:
+        return boundaries
+
+    start = intersections.pop(0)
+
+    while len(intersections) > 0:
+        end = intersections.pop(0)
+        if point_position_on_horizontal_axis(complex(end + step, y), data) in (
+            PointPosition.ON_EDGE,
+            PointPosition.INSIDE,
+        ):
+            # Continue the interval
+            continue
+        else:
+            boundaries.append((start, end))
+            if intersections:
+                start = intersections.pop(0)
+
+    return boundaries
 
 
 def point_position_on_horizontal_axis(
@@ -414,8 +482,11 @@ def point_position_on_horizontal_axis(
             return PointPosition.ON_EDGE
 
     # Raycast to the right
-    intersection = raycast_right_axis(point, path)
-    return PointPosition.INSIDE if intersection % 2 == 1 else PointPosition.OUTSIDE
+    intersections = raycast_right_axis(point, path)
+
+    return (
+        PointPosition.INSIDE if len(intersections) % 2 == 1 else PointPosition.OUTSIDE
+    )
 
 
 def point_position_on_vertical_axis(
@@ -429,8 +500,10 @@ def point_position_on_vertical_axis(
             return PointPosition.ON_EDGE
 
     # Raycast upwards
-    intersection = raycast_up_axis(point, path)
-    return PointPosition.INSIDE if intersection % 2 == 1 else PointPosition.OUTSIDE
+    intersections = raycast_up_axis(point, path)
+    return (
+        PointPosition.INSIDE if len(intersections) % 2 == 1 else PointPosition.OUTSIDE
+    )
 
 
 def longest_horizontal_segment(
