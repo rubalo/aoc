@@ -6,7 +6,7 @@ from aoc.y2025.day10 import part1, part2
 
 
 def test_part1() -> None:
-    assert part1() == 0
+    assert part1() == 459
 
 
 def test_part2() -> None:

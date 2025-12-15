@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import LiteralString
+from collections import deque
+from typing import Deque, LiteralString
 
 from aoc.utils import read_input
 
@@ -50,6 +51,44 @@ class Machine:
     def __str__(self):
         return f"Machine(diagram={self.diagram}, buttons={self.buttons}, joltages={self.joltages})"
 
+    def index_to_flip(self, state: list[str]) -> list[int]:
+        """Determine which index to flip to make the machine ready.
+        [....] -> [.##.] will return [1,2]
+        """
+        indices = []
+        for i, (d, s) in enumerate(zip(self.diagram, state)):
+            if d != s:
+                indices.append(i)
+        return indices
+
+    def list_buttons(self, indexes: list[int]) -> list[int]:
+        """Check if the given indexes can be flipped with any button.
+        Returns a list of the button that needs to be pressed to flip those indexes.
+        """
+        buttons = []
+        for i, button in enumerate(self.buttons):
+            if any([index in button for index in indexes]):
+                buttons.append(i)
+        return buttons
+
+    def push_button(self, state: list[str], button_number: int) -> list[str]:
+        """Push the given button to flip the indexes."""
+        button = self.buttons[button_number]
+        new_state = state.copy()
+        for index in button:
+            if state[index] == ".":
+                new_state[index] = "#"
+            else:
+                new_state[index] = "."
+
+        return new_state
+
+    def activated(self, state: list[str]) -> bool:
+        return self.diagram == state
+
+    def initial_state(self) -> list[str]:
+        return ["." for _ in self.diagram]
+
 
 def get_input_data():
     return read_input(day=10, year=2025)
@@ -74,11 +113,33 @@ def get_test_input_data() -> list[LiteralString]:
 
 def part1() -> int:
     data = get_input_data()  # noqa
-    data = get_test_input_data()  # noqa
     data = parse_data(data)  # noqa
     result = 0
+    queue: Deque[tuple[list[str], list[int]]] = deque()
+
     for m in data:
-        logger.debug(m)
+        logger.info(f"Processing machine: {m}")
+        queue.append((m.initial_state(), []))
+
+        while queue:
+            state, buttons_pressed = queue.popleft()
+            logger.debug(f"Current state: {state}, buttons pressed: {buttons_pressed}")
+            wrong_indexes = m.index_to_flip(state)
+            possible_buttons = m.list_buttons(wrong_indexes)
+            for button in possible_buttons:
+                new_state = m.push_button(state, button)
+                new_buttons_pressed = buttons_pressed.copy() + [button]
+
+                if m.activated(new_state):
+                    result += len(new_buttons_pressed)
+                    logger.info(
+                        f"Machine activated with buttons: {new_buttons_pressed}, nb buttons: {len(new_buttons_pressed)}"
+                    )
+                    queue.clear()
+                    break
+                else:
+                    queue.append((new_state, new_buttons_pressed))
+
     return result
 
 
